@@ -1,0 +1,3 @@
+[submodule "tests/integration/external/ChaiScript"]
+	path = tests/integration/external/ChaiScript
+	url = https://github.com/ChaiScript/ChaiScript.git
