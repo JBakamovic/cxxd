@@ -196,7 +196,7 @@ So, integration tests have all of the important bits which depict the usage of a
 
 # Screenshots
 
-## [Screenshots from cxxd-vim](https://github.com/JBakamovic/cxxd-vim/README.md#screenshots)
+## [Screenshots from cxxd-vim](https://github.com/JBakamovic/cxxd-vim/blob/master/README.md#screenshots)
 
 # FAQ
 
