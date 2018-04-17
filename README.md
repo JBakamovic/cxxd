@@ -1,6 +1,7 @@
 # Contents
 * [About](#about)
   * [Features](#features)
+  * [Supported platforms](#supported-platforms)
 * [API](#api)
   * [Design](#design)
     * [Services](#services)
@@ -38,6 +39,13 @@ Project-builder | :heavy_check_mark: | :heavy_check_mark:
 
 In essence, the main idea behind it is very much alike to what [`LSP`](https://microsoft.github.io/language-server-protocol/) offers 
 and its implementations like [`clangd`](https://clang.llvm.org/extra/clangd.html).
+
+## Supported platforms
+Platform | Status | Comments
+------------ | :-------------: | :-------------:
+Linux | :heavy_check_mark: | Main development environment of this project.
+Windows | :x: | Not officially tested but it might work.
+macOS | :x: | Not officially tested but it might work.
 
 # API
 
