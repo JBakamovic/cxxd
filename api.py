@@ -84,8 +84,8 @@ def source_code_model_start(handle, project_root_directory, compiler_args):
 def source_code_model_stop(handle, subscribe_for_callback):
     _server_stop_service(handle, ServiceId.SOURCE_CODE_MODEL, subscribe_for_callback)
 
-def source_code_model_semantic_syntax_highlight_request(handle, filename, contents):
-    _source_code_model_request(handle, SourceCodeModelSubServiceId.SEMANTIC_SYNTAX_HIGHLIGHT, filename, contents)
+def source_code_model_semantic_syntax_highlight_request(handle, filename, contents, line_begin, line_end):
+    _source_code_model_request(handle, SourceCodeModelSubServiceId.SEMANTIC_SYNTAX_HIGHLIGHT, filename, contents, line_begin, line_end)
 
 def source_code_model_diagnostics_request(handle, filename, contents):
     _source_code_model_request(handle, SourceCodeModelSubServiceId.DIAGNOSTICS, filename, contents)
