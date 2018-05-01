@@ -67,6 +67,9 @@ class ClangParser():
     def get_compiler_args_db(self):
         return self.compiler_args
 
+    def auto_complete(self, tunit, line, column):
+        return tunit.codeComplete(tunit.spelling, line, column)
+
     def parse(self, contents_filename, original_filename):
         def do_parse(contents_filename, original_filename):
             try:
