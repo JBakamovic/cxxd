@@ -10,6 +10,7 @@ from source_code_model.indexer.clang_indexer import ClangIndexer
 from source_code_model.type_deduction.type_deduction import TypeDeduction
 from source_code_model.go_to_definition.go_to_definition import GoToDefinition
 from source_code_model.go_to_include.go_to_include import GoToInclude
+from source_code_model.auto_completion.auto_completion import AutoCompletion
 
 class SourceCodeModelSubServiceId():
     INDEXER                   = 0x0
@@ -18,6 +19,7 @@ class SourceCodeModelSubServiceId():
     TYPE_DEDUCTION            = 0x3
     GO_TO_DEFINITION          = 0x4
     GO_TO_INCLUDE             = 0x5
+    AUTO_COMPLETION           = 0x6
 
 class SourceCodeModel(cxxd.service.Service):
     def __init__(self, project_root_directory, cxxd_config_parser, target, service_plugin):
@@ -35,7 +37,8 @@ class SourceCodeModel(cxxd.service.Service):
             SourceCodeModelSubServiceId.DIAGNOSTICS               : Diagnostics(self.parser),
             SourceCodeModelSubServiceId.TYPE_DEDUCTION            : TypeDeduction(self.parser),
             SourceCodeModelSubServiceId.GO_TO_DEFINITION          : GoToDefinition(self.parser, self.clang_indexer.get_symbol_db(), self.project_root_directory),
-            SourceCodeModelSubServiceId.GO_TO_INCLUDE             : GoToInclude(self.parser)
+            SourceCodeModelSubServiceId.GO_TO_INCLUDE             : GoToInclude(self.parser),
+            SourceCodeModelSubServiceId.AUTO_COMPLETION           : AutoCompletion(self.parser)
         }
 
     def __unknown_service(self, args):
