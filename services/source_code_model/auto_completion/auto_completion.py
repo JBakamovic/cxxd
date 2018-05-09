@@ -34,6 +34,6 @@ class AutoCompletion():
                         completion_candidates.append(result)
                         break
         else:
-            pass # Can't do nothing about it ...
+            logging.error('Couldn''t extract the symbol!') # Can't do nothing about it ...
 
         return self.auto_complete is not None, completion_candidates
