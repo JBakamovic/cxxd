@@ -7,6 +7,11 @@ class AutoCompletion():
         self.parser = parser
 
     def __call__(self, args):
+        def read_line(filename, offset):
+            f = open(filename)
+            f.seek(offset)
+            return f.readline()
+
         def extract_symbol(line_string):
             for idx, s in enumerate(line_string[::-1]):
                 if not s.isdigit() and not s.isalpha() and s != '_':
@@ -17,6 +22,9 @@ class AutoCompletion():
         contents_filename = str(args[1])
         line              = int(args[2])
         column            = int(args[3])
+        offset            = int(args[4])
+
+        line_string = read_line(contents_filename, offset)
 
         tunit = self.parser.parse(contents_filename, original_filename)
         self.auto_complete = self.parser.auto_complete(
@@ -24,10 +32,9 @@ class AutoCompletion():
                 )
 
         completion_candidates = []
-        s = linecache.getline(contents_filename, line)
-        idx = extract_symbol(s[0:column])
+        idx = extract_symbol(line_string[0:column-1])
         if idx != -1:
-            expression = s[(column-idx):column]
+            expression = line_string[(column-1-idx):column-1].rstrip()
             for result in self.auto_complete.results:
                 for completion_chunk in result.string:
                     if completion_chunk.isKindTypedText() and expression in completion_chunk.spelling:
