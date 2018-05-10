@@ -8,9 +8,11 @@ class AutoCompletion():
 
     def __call__(self, args):
         def read_line(filename, offset):
-            f = open(filename)
+            f = open(filename, 'r')
             f.seek(offset)
-            return f.readline()
+            l = f.readline()
+            f.close()
+            return l
 
         def extract_symbol(line_string):
             for idx, s in enumerate(line_string[::-1]):
