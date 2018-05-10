@@ -33,10 +33,11 @@ class AutoCompletion():
                     tunit, line, column
                 )
 
+        column = column - 1 # We need 0-based index column to work with strings ...
         completion_candidates = []
-        idx = extract_symbol(line_string[0:column-1])
+        idx = extract_symbol(line_string[0:column])
         if idx != -1:
-            expression = line_string[(column-1-idx):column-1].rstrip()
+            expression = line_string[(column-idx):column].rstrip()
             for result in self.auto_complete.results:
                 for completion_chunk in result.string:
                     if completion_chunk.isKindTypedText() and expression in completion_chunk.spelling:
