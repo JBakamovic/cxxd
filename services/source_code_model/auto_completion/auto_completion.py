@@ -1,12 +1,26 @@
-import linecache
 import logging
 import os
+
+class SourceCodeModelAutoCompletionRequestId():
+    CODE_COMPLETE     = 0x0
+    REFINE_CANDIDATES = 0x1
 
 class AutoCompletion():
     def __init__(self, parser):
         self.parser = parser
+        self.op = {
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE     : self.__code_complete,
+            SourceCodeModelAutoCompletionRequestId.REFINE_CANDIDATES : self.__refine_candidates,
+        }
 
     def __call__(self, args):
+        return self.op.get(int(args[0]), self.__unknown_op)(int(args[0]), args[1:len(args)])
+
+    def __unknown_op(self, id, args):
+        logging.error("Unknown operation with ID={0} triggered! Valid operations are: {1}".format(id, self.op))
+        return False, None
+
+    def __code_complete(self, id, args):
         def read_line(filename, offset):
             f = open(filename, 'r')
             f.seek(offset)
@@ -44,6 +58,10 @@ class AutoCompletion():
                         completion_candidates.append(result)
                         break
         else:
-            logging.error('Couldn''t extract the symbol!') # Can't do nothing about it ...
+            logging.error('Failed to extract the symbol!') # Can't do nothing about it ...
 
         return self.auto_complete is not None, completion_candidates
+
+    def __refine_candidates(self, id, args):
+        pass
+
