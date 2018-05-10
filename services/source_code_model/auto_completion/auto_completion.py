@@ -30,7 +30,7 @@ class AutoCompletion():
 
         tunit = self.parser.parse(contents_filename, original_filename)
         self.auto_complete = self.parser.auto_complete(
-                    tunit, line, column
+                    tunit, line, column + 1
                 )
 
         column = column - 1 # We need 0-based index column to work with strings ...
