@@ -7,9 +7,10 @@ class SourceCodeModelAutoCompletionRequestId():
 
 def extract_symbol(line_string):
     #logging.info('line to extract length {0}, line = {1}'.format(len(line_string), line_string))
+    line_string_len = len(line_string)
     for idx, s in enumerate(line_string[::-1]):
         #logging.info('Current char is {0}'.format(s))
-        if not s.isdigit() and not s.isalpha() and s != '_':
+        if not s.isdigit() and not s.isalpha() and s != '_' or idx+1 == line_string_len:
             return idx
     return -1
 
