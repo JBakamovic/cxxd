@@ -42,7 +42,7 @@ class AutoCompletion():
         contents_filename = str(args[1])
         line              = int(args[2])
         column            = int(args[3]) - 1
-        offset            = int(args[4])
+        offset            = int(args[4]) - 1
 
         line_string = read_line(contents_filename, offset)
         logging.info("Filtering from [{0}, {1}] with offset = {2}: line = '{3}', len = {4}".format(line, column, offset, line_string, len(line_string)))
