@@ -31,7 +31,7 @@ Go-to-include | :heavy_check_mark: | :heavy_check_mark:
 Type-deduction | :heavy_check_mark: | :heavy_check_mark:
 Fixits-and-diagnostics | :heavy_check_mark: | :heavy_check_mark:
 Semantic-syntax-highlighting | :heavy_check_mark: | :heavy_check_mark:
-Code-completion | :x: | :x:
+Code-completion | work-in-progress | work-in-progress
 Clang-tidy | :heavy_check_mark: | :heavy_check_mark:
 Clang-format | :heavy_check_mark: | :heavy_check_mark:
 JSON-compilation-database | :heavy_check_mark: | :heavy_check_mark:
