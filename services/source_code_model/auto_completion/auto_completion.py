@@ -89,10 +89,8 @@ def is_whitespace(c):
     return c.isspace()
 
 def find_symbol_idx(line_string):
-    logging.info("line to extract length {0}, line = '{1}'".format(len(line_string), line_string))
     line_string_len = len(line_string)
     for idx, s in enumerate(line_string[::-1]):
-        logging.info("Current char is '{0}'".format(s))
         if idx+1 == line_string_len:
             return idx
         if not is_identifier(s):
@@ -130,7 +128,6 @@ class AutoCompletion():
         offset            = int(args[4]) - 1
 
         line_string = read_line(contents_filename, offset)
-        logging.info("Filtering from [{0}, {1}] with offset = {2}: line = '{3}', len = {4}".format(line, column, offset, line_string, len(line_string)))
 
         curr_char_idx = column - 1
         prev_char_idx = curr_char_idx - 1
@@ -138,7 +135,6 @@ class AutoCompletion():
 
         if curr_char_idx < len(line_string):
             current_char = line_string[curr_char_idx]
-            logging.info("current_char = '{0}'".format(current_char))
 
             if is_carriage_return(current_char):
                 del self.completion_candidates[:]
@@ -160,37 +156,29 @@ class AutoCompletion():
                         self.auto_complete = self.parser.auto_complete(
                                 tunit, line, column + 1
                         )
-                        logging.info('Clang found {0} candidates.'.format(len(self.auto_complete.results)))
+                        # TODO short-circuit the results into candidates to save time?
+                        # self.completion_candidates = self.auto_complete.results
                         self.completion_candidates = self.__filter_completion_candidates(
                             self.auto_complete.results,
                             '' # We haven't got anything to filter with
                         )
                     else: # Otherwise, we won't get much from clang so we save some time here ...
                         pass
-                    logging.info("previous_char = '{0}' current_char = '{1}' member_access or scope_operator = {2}".format(line_string[prev_char_idx] if prev_char_idx > 0 else 'no prev char', current_char, member_access or scope_operator))
                 else:
-                    logging.info("Will extract symbol from '{0}'".format(line_string[0:next_char_idx]))
                     idx = find_symbol_idx(line_string[0:next_char_idx]) # [begin:end] slice is actually [begin:end> or [begin:end-1]
                     if idx != -1:
                         symbol = line_string[(curr_char_idx-idx):next_char_idx]
-                        logging.info("symbol found = '{0}'".format(symbol))
                         if len(self.completion_candidates) == 0 or symbol == '':
-                            logging.info('Getting new list of candidates ...')
                             del self.completion_candidates[:]
                             tunit = self.parser.parse(contents_filename, original_filename)
                             self.auto_complete = self.parser.auto_complete(
                                     tunit, line, column + 1
                             )
-                            logging.info('Clang found {0} candidates.'.format(len(self.auto_complete.results)))
                             self.completion_candidates = self.__filter_completion_candidates(
                                 self.auto_complete.results,
                                 symbol.strip()
                             ) # At this point we might already have something to work with (e.g. part of the string we may trigger filtering with)
                         else:
-                            logging.info(
-                                "Filtering by symbol = '{0}' from '{1}' starting from {2}".format(symbol,
-                                    line_string[0:next_char_idx], idx)
-                            )
                             # TODO This situation can be improved further by:
                             #       * if moving forward we can use list of already filtered candidates
                             #       * if moving backwards (backspace, delete) we have to re-use all (non-filtered) candidates list
@@ -198,7 +186,6 @@ class AutoCompletion():
                                 self.auto_complete.results,
                                 symbol.strip()
                             ) # At this point we might already have something to work with (e.g. part of the string we may trigger filtering with)   
-                        logging.info('Found {0} candidates.'.format(len(self.completion_candidates)))
                     else:
                         logging.error('Unable to extract symbol. Nothing to be done ...')
 
