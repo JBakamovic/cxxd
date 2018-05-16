@@ -191,8 +191,11 @@ class AutoCompletion():
                                 "Filtering by symbol = '{0}' from '{1}' starting from {2}".format(symbol,
                                     line_string[0:next_char_idx], idx)
                             )
+                            # TODO This situation can be improved further by:
+                            #       * if moving forward we can use list of already filtered candidates
+                            #       * if moving backwards (backspace, delete) we have to re-use all (non-filtered) candidates list
                             self.completion_candidates = self.__filter_completion_candidates(
-                                self.completion_candidates,
+                                self.auto_complete.results,
                                 symbol.strip()
                             ) # At this point we might already have something to work with (e.g. part of the string we may trigger filtering with)   
                         logging.info('Found {0} candidates.'.format(len(self.completion_candidates)))
