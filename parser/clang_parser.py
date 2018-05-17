@@ -70,13 +70,14 @@ class ClangParser():
     def auto_complete(self, tunit, line, column):
         return tunit.codeComplete(tunit.spelling, line, column)
 
-    def parse(self, contents_filename, original_filename):
+    def parse(self, contents_filename, original_filename, opts = clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD):
         def do_parse(contents_filename, original_filename):
             try:
                 return self.index.parse(
                     path = contents_filename,
                     args = self.compiler_args.get(original_filename, contents_filename != original_filename),
-                    options = clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD # TODO CXTranslationUnit_KeepGoing?
+                    options = opts
+                    # TODO CXTranslationUnit_KeepGoing?
                 )
             except:
                 logging.error(sys.exc_info())
