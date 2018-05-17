@@ -1,3 +1,4 @@
+import clang.cindex
 import logging
 import os
 
@@ -120,6 +121,15 @@ class AutoCompletion():
         logging.error("Unknown operation with ID={0} triggered! Valid operations are: {1}".format(id, self.op))
         return False, None
 
+    def __get_clang_auto_completion_parsing_flags(self):
+        # TODO Do we need PARSE_DETAILED_PROCESSING_RECORD flag here? It looks like it makes no difference when
+        #      auto-completing macro's. It does not get auto-completed regardless of presence of this flag.
+        # TODO Add support for PARSE_INCLUDE_BRIEF_COMMENTS_IN_CODE_COMPLETION
+        return \
+            clang.cindex.TranslationUnit.PARSE_CACHE_COMPLETION_RESULTS | \
+            clang.cindex.TranslationUnit.PARSE_PRECOMPILED_PREAMBLE | \
+            clang.cindex.TranslationUnit.PARSE_INCOMPLETE
+
     def __code_complete(self, id, args):
         original_filename = str(args[0])
         contents_filename = str(args[1])
@@ -152,7 +162,10 @@ class AutoCompletion():
                     member_access  = is_member_access(line_string[prev_char_idx:next_char_idx])  if curr_char_idx != 0 else False
                     scope_operator = is_scope_operator(line_string[prev_char_idx:next_char_idx]) if curr_char_idx != 0 else False
                     if member_access or scope_operator:
-                        tunit = self.parser.parse(contents_filename, original_filename)
+                        tunit = self.parser.parse(
+                            contents_filename, original_filename,
+                            self.__get_clang_auto_completion_parsing_flags()
+                        )
                         self.auto_complete = self.parser.auto_complete(
                                 tunit, line, column + 1
                         )
@@ -170,7 +183,10 @@ class AutoCompletion():
                         symbol = line_string[(curr_char_idx-idx):next_char_idx]
                         if len(self.completion_candidates) == 0 or symbol == '':
                             del self.completion_candidates[:]
-                            tunit = self.parser.parse(contents_filename, original_filename)
+                            tunit = self.parser.parse(
+                                contents_filename, original_filename,
+                                self.__get_clang_auto_completion_parsing_flags()
+                            )
                             self.auto_complete = self.parser.auto_complete(
                                     tunit, line, column + 1
                             )
@@ -181,7 +197,8 @@ class AutoCompletion():
                         else:
                             # TODO This situation can be improved further by:
                             #       * if moving forward we can use list of already filtered candidates
-                            #       * if moving backwards (backspace, delete) we have to re-use all (non-filtered) candidates list
+                            #       * if moving backwards (backspace, delete) we have to re-use all (non-filtered)
+                            #         candidates list or cache one ourselves?
                             self.completion_candidates = self.__filter_completion_candidates(
                                 self.auto_complete.results,
                                 symbol.strip()
