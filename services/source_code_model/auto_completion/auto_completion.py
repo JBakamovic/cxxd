@@ -4,7 +4,6 @@ import os
 
 class SourceCodeModelAutoCompletionRequestId():
     CODE_COMPLETE     = 0x0
-    REFINE_CANDIDATES = 0x1
 
 def is_identifier(char):
     is_digit = char.isdigit()
@@ -109,8 +108,7 @@ class AutoCompletion():
     def __init__(self, parser):
         self.parser = parser
         self.op = {
-            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE     : self.__code_complete,
-            #SourceCodeModelAutoCompletionRequestId.REFINE_CANDIDATES : self.__refine_candidates,
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE : self.__code_complete,
         }
         self.completion_candidates = []
 
