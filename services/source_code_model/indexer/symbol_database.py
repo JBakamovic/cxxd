@@ -1,5 +1,6 @@
 import logging
 import sqlite3
+import sys
 
 class SymbolDatabase(object):
     VERSION_MAJOR = 0
@@ -8,23 +9,35 @@ class SymbolDatabase(object):
     def __init__(self, db_filename = None):
         self.filename = db_filename
         if db_filename:
-            self.db_connection = sqlite3.connect(db_filename)
+            try:
+                self.db_connection = sqlite3.connect(db_filename)
+            except:
+                logging.error(sys.exc_info())
         else:
             self.db_connection = None
 
     def __del__(self):
         if self.db_connection:
-            self.db_connection.close()
+            try:
+                self.db_connection.close()
+            except:
+                logging.error(sys.exc_info())
 
     def open(self, db_filename):
         if not self.db_connection:
-            self.db_connection = sqlite3.connect(db_filename)
-            self.filename = db_filename
+            try:
+                self.db_connection = sqlite3.connect(db_filename)
+                self.filename = db_filename
+            except:
+                logging.error(sys.exc_info())
 
     def close(self):
         if self.db_connection:
-            self.db_connection.close()
-            self.db_connection = None
+            try:
+                self.db_connection.close()
+                self.db_connection = None
+            except:
+                logging.error(sys.exc_info())
 
     def is_open(self):
         return self.db_connection is not None
@@ -51,14 +64,29 @@ class SymbolDatabase(object):
         return row[6]
 
     def get_all(self):
-        # TODO Use generators
-        return self.db_connection.cursor().execute('SELECT * FROM symbol')
+        rows = []
+        try:
+            # TODO Use generators
+            rows = self.db_connection.cursor().execute('SELECT * FROM symbol').fetchall()
+        except:
+            logging.error(sys.exc_info())
+        return rows
 
     def get_by_usr(self, usr):
-        return self.db_connection.cursor().execute('SELECT * FROM symbol WHERE usr=?', (usr,))
+        rows = []
+        try:
+            rows = self.db_connection.cursor().execute('SELECT * FROM symbol WHERE usr=?', (usr,)).fetchall()
+        except:
+            logging.error(sys.exc_info())
+        return rows
 
     def get_definition(self, usr):
-        return self.db_connection.cursor().execute('SELECT * FROM symbol WHERE usr=? AND is_definition=1', (usr,))
+        rows = []
+        try:
+            rows = self.db_connection.cursor().execute('SELECT * FROM symbol WHERE usr=? AND is_definition=1',(usr,)).fetchall()
+        except:
+            logging.error(sys.exc_info())
+        return rows
 
     def insert_single(self, filename, line, column, unique_id, context, symbol_kind, is_definition):
         try:
@@ -102,34 +130,46 @@ class SymbolDatabase(object):
             symbol_db.close()
 
     def flush(self):
-        self.db_connection.commit()
+        try:
+            self.db_connection.commit()
+        except:
+            logging.error(sys.exc_info())
 
     def delete(self, filename):
-        self.db_connection.cursor().execute('DELETE FROM symbol WHERE filename=?', (filename,))
+        try:
+            self.db_connection.cursor().execute('DELETE FROM symbol WHERE filename=?', (filename,))
+        except:
+            logging.error(sys.exc_info())
 
     def delete_all(self):
-        self.db_connection.cursor().execute('DELETE FROM symbol')
+        try:
+            self.db_connection.cursor().execute('DELETE FROM symbol')
+        except:
+            logging.error(sys.exc_info())
 
     def create_data_model(self):
-        self.db_connection.cursor().execute(
-            'CREATE TABLE IF NOT EXISTS symbol ( \
-                filename        text,            \
-                line            integer,         \
-                column          integer,         \
-                usr             text,            \
-                context         text,            \
-                kind            integer,         \
-                is_definition   boolean,         \
-                PRIMARY KEY(filename, usr, line) \
-             )'
-        )
-        self.db_connection.cursor().execute(
-            'CREATE TABLE IF NOT EXISTS version ( \
-                major integer,            \
-                minor integer,            \
-                PRIMARY KEY(major, minor) \
-             )'
-        )
-        self.db_connection.cursor().execute(
-            'INSERT INTO version VALUES (?, ?)', (SymbolDatabase.VERSION_MAJOR, SymbolDatabase.VERSION_MINOR,)
-        )
+        try:
+            self.db_connection.cursor().execute(
+                'CREATE TABLE IF NOT EXISTS symbol ( \
+                    filename        text,            \
+                    line            integer,         \
+                    column          integer,         \
+                    usr             text,            \
+                    context         text,            \
+                    kind            integer,         \
+                    is_definition   boolean,         \
+                    PRIMARY KEY(filename, usr, line) \
+                 )'
+            )
+            self.db_connection.cursor().execute(
+                'CREATE TABLE IF NOT EXISTS version ( \
+                    major integer,            \
+                    minor integer,            \
+                    PRIMARY KEY(major, minor) \
+                 )'
+            )
+            self.db_connection.cursor().execute(
+                'INSERT INTO version VALUES (?, ?)', (SymbolDatabase.VERSION_MAJOR, SymbolDatabase.VERSION_MINOR,)
+            )
+        except:
+            logging.error(sys.exc_info())

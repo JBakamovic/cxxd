@@ -22,9 +22,10 @@ class GoToDefinition():
 
         # If unsuccessful, try once more by extracting the definition from indexed symbol database
         if not definition:
+            logging.error('{0}'.format(cursor.referenced.get_usr() if cursor.referenced else cursor.get_usr()))
             definition = self.symbol_db.get_definition(
                             cursor.referenced.get_usr() if cursor.referenced else cursor.get_usr(),
-                         ).fetchall()
+                         )
             if definition:
                 def_filename, def_line, def_column = os.path.join(
                         self.project_root_directory, self.symbol_db.get_filename(definition[0])

@@ -72,9 +72,8 @@ class SourceCodeModelGoToDefinitionTest(unittest.TestCase):
         self.assertGreaterEqual(column, 0)
 
     def test_if_call_returns_false_and_definition_is_not_found_for_non_local_symbol_not_included_via_header_and_not_found_in_symbol_db(self):
-        cursor = mock.MagicMock(sqlite3.Cursor)
-        cursor.fetchall.return_value = None
-        with mock.patch.object(self.service.symbol_db, 'get_definition', return_value=cursor) as mock_symbol_db_get_definition:
+        rows = []
+        with mock.patch.object(self.service.symbol_db, 'get_definition', return_value=rows) as mock_symbol_db_get_definition:
             success, definition = self.service(
                 [self.test_file.name, self.test_file.name, 13, 12]
             )
@@ -85,9 +84,8 @@ class SourceCodeModelGoToDefinitionTest(unittest.TestCase):
         self.assertEqual(column, None)
 
     def test_if_call_returns_false_and_definition_is_not_found_for_non_local_symbol_not_included_via_header_and_not_found_in_symbol_db_with_current_tunit_being_modified(self):
-        cursor = mock.MagicMock(sqlite3.Cursor)
-        cursor.fetchall.return_value = None
-        with mock.patch.object(self.service.symbol_db, 'get_definition', return_value=cursor) as mock_symbol_db_get_definition:
+        rows = []
+        with mock.patch.object(self.service.symbol_db, 'get_definition', return_value=rows) as mock_symbol_db_get_definition:
             success, definition = self.service(
                 [self.test_file.name, self.test_file_edited.name, 15, 12]
             )
@@ -98,10 +96,9 @@ class SourceCodeModelGoToDefinitionTest(unittest.TestCase):
         self.assertEqual(column, None)
 
     def test_if_call_returns_true_and_definition_is_found_for_non_local_symbol_not_included_via_header_but_found_in_symbol_db(self):
-        cursor = mock.MagicMock(sqlite3.Cursor)
         made_up_filename, line, column = 'name_of_some_other_translation_unit_extracted_from_symbol_db', 124, 5
-        cursor.fetchall.return_value = [(made_up_filename, line, column)]
-        with mock.patch.object(self.service.symbol_db, 'get_definition', return_value=cursor) as mock_symbol_db_get_definition:
+        rows = [(made_up_filename, line, column)]
+        with mock.patch.object(self.service.symbol_db, 'get_definition', return_value=rows) as mock_symbol_db_get_definition:
             with mock.patch.object(self.service.symbol_db, 'get_filename', return_value=made_up_filename):
                 with mock.patch.object(self.service.symbol_db, 'get_line', return_value=line):
                     with mock.patch.object(self.service.symbol_db, 'get_column', return_value=column):
@@ -119,8 +116,8 @@ class SourceCodeModelGoToDefinitionTest(unittest.TestCase):
     def test_if_call_returns_true_and_definition_is_found_for_non_local_symbol_not_included_via_header_but_found_in_symbol_db_with_current_tunit_being_modified(self):
         cursor = mock.MagicMock(sqlite3.Cursor)
         made_up_filename, line, column = 'name_of_some_other_translation_unit_extracted_from_symbol_db', 124, 5
-        cursor.fetchall.return_value = [(made_up_filename, line, column)]
-        with mock.patch.object(self.service.symbol_db, 'get_definition', return_value=cursor) as mock_symbol_db_get_definition:
+        rows = [(made_up_filename, line, column)]
+        with mock.patch.object(self.service.symbol_db, 'get_definition', return_value=rows) as mock_symbol_db_get_definition:
             with mock.patch.object(self.service.symbol_db, 'get_filename', return_value=made_up_filename):
                 with mock.patch.object(self.service.symbol_db, 'get_line', return_value=line):
                     with mock.patch.object(self.service.symbol_db, 'get_column', return_value=column):

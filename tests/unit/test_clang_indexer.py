@@ -53,6 +53,20 @@ class ClangIndexerTest(unittest.TestCase):
         self.root_directory = os.path.dirname(self.test_file.name)
         self.service = ClangIndexer(self.parser, self.root_directory)
 
+    def test_if_symbol_db_conn_is_automatically_established_in_case_db_already_exists_on_the_disk(self):
+        symbol_db = SymbolDatabase(os.path.join(self.root_directory, self.service.symbol_db_name))
+        service = ClangIndexer(self.parser, self.root_directory)
+        self.assertTrue(service.symbol_db_exists())
+        self.assertTrue(service.get_symbol_db().is_open())
+        symbol_db.close()
+        os.remove(symbol_db.filename)
+        self.assertFalse(service.symbol_db_exists())
+
+    def test_if_symbol_db_conn_is_not_established_in_case_db_does_not_exist_on_the_disk(self):
+        service = ClangIndexer(self.parser, self.root_directory)
+        self.assertFalse(service.symbol_db_exists())
+        self.assertFalse(service.get_symbol_db().is_open())
+
     def test_if_symbol_db_is_located_in_root_directory(self):
         self.assertEqual(self.service.symbol_db_path, os.path.join(self.root_directory, self.service.symbol_db_name))
 
@@ -278,13 +292,12 @@ class ClangIndexerTest(unittest.TestCase):
 
     def test_if_find_all_references_returns_true_and_empty_references_list_when_run_on_symbol_which_does_not_have_any_occurence_in_symbol_db(self):
         line, column = 1, 1
-        cursor = mock.MagicMock(sqlite3.Cursor)
-        cursor.fetchall.return_value = []
+        rows = []
         with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
             with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
                 with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
                     with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                        with mock.patch.object(self.service.symbol_db, 'get_by_usr', return_value=cursor) as mock_symbol_db_get_by_usr:
+                        with mock.patch.object(self.service.symbol_db, 'get_by_usr', return_value=rows) as mock_symbol_db_get_by_usr:
                             success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_get_cursor.assert_called_once_with(mock_parser_parse.return_value, line, column)
@@ -295,13 +308,12 @@ class ClangIndexerTest(unittest.TestCase):
 
     def test_if_find_all_references_returns_true_and_non_empty_references_list_when_run_on_symbol_which_has_occurences_in_symbol_db(self):
         line, column = 1, 1
-        cursor = mock.MagicMock(sqlite3.Cursor)
-        cursor.fetchall.return_value = [['main.cpp', '22', '5', 'main.cpp#l22#c5#foobar', '    void foobar() {']]
+        rows = [['main.cpp', '22', '5', 'main.cpp#l22#c5#foobar', '    void foobar() {']]
         with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
             with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
                 with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
                     with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                        with mock.patch.object(self.service.symbol_db, 'get_by_usr', return_value=cursor) as mock_symbol_db_get_by_usr:
+                        with mock.patch.object(self.service.symbol_db, 'get_by_usr', return_value=rows) as mock_symbol_db_get_by_usr:
                             success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_get_cursor.assert_called_once_with(mock_parser_parse.return_value, line, column)
@@ -312,13 +324,12 @@ class ClangIndexerTest(unittest.TestCase):
 
     def test_if_find_all_references_returns_true_and_in_non_empty_references_filename_columns_are_prepended_with_root_directory(self):
         line, column = 1, 1
-        cursor = mock.MagicMock(sqlite3.Cursor)
-        cursor.fetchall.return_value = [['main.cpp', '22', '5', 'main.cpp#l22#c5#foobar', '    void foobar() {']]
+        rows = [['main.cpp', '22', '5', 'main.cpp#l22#c5#foobar', '    void foobar() {']]
         with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
             with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
                 with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
                     with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                        with mock.patch.object(self.service.symbol_db, 'get_by_usr', return_value=cursor) as mock_symbol_db_get_by_usr:
+                        with mock.patch.object(self.service.symbol_db, 'get_by_usr', return_value=rows) as mock_symbol_db_get_by_usr:
                             success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_get_cursor.assert_called_once_with(mock_parser_parse.return_value, line, column)
