@@ -469,6 +469,95 @@ int main() {                                \n\
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
 
+    def test_if_call_returns_true_and_non_empty_candidate_list_for_member_access_via_dot_operator(self):
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+int main() {                                \n\
+    P p1 = {0, 1};                          \n\
+    return p1.                              \n\
+}                                           \n\
+        ')
+
+        line, column = 4, 14
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        print completion_candidates
+        self.assertEqual(success, True)
+        self.assertNotEqual(len(completion_candidates), 0)
+
+    def test_if_call_returns_true_and_non_empty_candidate_list_for_member_access_via_arrow_operator(self):
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+int main() {                                \n\
+    P p1 = {0, 1};                          \n\
+    P *p2 = &p1;                            \n\
+    p2->                                    \n\
+}                                           \n\
+        ')
+
+        line, column = 5, 8
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        print completion_candidates
+        self.assertEqual(success, True)
+        self.assertNotEqual(len(completion_candidates), 0)
+
+    def test_if_call_returns_true_and_non_empty_candidate_list_for_member_access_via_ptr_to_member_of_object(self):
+        self.fd.write('\
+struct P { int x; int y; int *z;};          \n\
+int main() {                                \n\
+    int z = 10;                             \n\
+    P p1 = {0, 1, &z};                      \n\
+    p1.*                                    \n\
+}                                           \n\
+        ')
+
+        line, column = 5, 8
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        print completion_candidates
+        self.assertEqual(success, True)
+        self.assertNotEqual(len(completion_candidates), 0)
+
+    def test_if_call_returns_true_and_non_empty_candidate_list_for_member_access_via_ptr_to_member_of_ptr(self):
+        self.fd.write('\
+struct P { int x; int y; int *z;};          \n\
+int main() {                                \n\
+    int z = 10;                             \n\
+    P p1 = {0, 1, &z};                      \n\
+    P *p2 = &p1;                            \n\
+    p2->*                                   \n\
+}                                           \n\
+        ')
+
+        line, column = 6, 9
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        print completion_candidates
+        self.assertEqual(success, True)
+        self.assertNotEqual(len(completion_candidates), 0)
+
+
     def not_test(self):
         self.fd = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
         self.fd.write('\
