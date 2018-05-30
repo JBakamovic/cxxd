@@ -43,7 +43,6 @@ class AutoCompletionTest(unittest.TestCase):
 
     def tearDown(self):
         pass
-        #os.remove(self.fd.name)
 
     def line_to_byte(self, test_file_line_length, line):
         return test_file_line_length*(line-1) + 1
@@ -109,7 +108,7 @@ int main() {                                \n\
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
 
-    def test_if_call_returns_true_and_only_candidates_which_include_res_are_returned(self):
+    def test_if_call_returns_true_and_candidates_matching_the_given_pattern_are_returned(self):
         self.fd.write('\
 #include <vector>                           \n\
                                             \n\
@@ -132,6 +131,343 @@ int main() {                                \n\
         self.assertNotEqual(len(completion_candidates), 0)
         for candidate in completion_candidates:
             self.assertTrue(candidate_contains_pattern(candidate, 'res'))
+
+    def test_if_call_returns_true_and_empty_candidates_list_for_a_column_pointing_to_other_special_characters(self):
+        self.fd.write('\
+int main() {                                \n\
+    int   a = 10;                           \n\
+    int   b = ~a;                           \n\
+    int   c = a^2;                          \n\
+    int   d = a % 2;                        \n\
+    int  *e = &d;                           \n\
+    int   f = a * 2;                        \n\
+    int   g = (a * 2);                      \n\
+    int   h = a + 2;                        \n\
+    int   i = a - 2;                        \n\
+    int   j = a / 2;                        \n\
+    int   k = a > 2 ? 1 : 2                 \n\
+    bool  l = true | false;                 \n\
+    int   m = { 1 };                        \n\
+    int   n[10] = {0};                      \n\
+    int   o, p;                             \n\
+    bool  r = a > c;                        \n\
+    bool  s = a < c;                        \n\
+    char *t = "test"                        \n\
+    bool  u = !a;                           \n\
+}                                           \n\
+        ')
+
+        # Character: =
+        line, column = 2, 13
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: whitespace
+        line, column = 2, 14
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: ;
+        line, column = 2, 17
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: carriage return
+        line, column = 2, 45
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: ~
+        line, column = 3, 15
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: ^
+        line, column = 4, 16
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: %
+        line, column = 5, 18
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: &
+        line, column = 6, 15
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: *
+        line, column = 7, 17
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: (
+        line, column = 8, 15
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: )
+        line, column = 8, 21
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: +
+        line, column = 9, 17
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: -
+        line, column = 10, 17
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: /
+        line, column = 11, 17
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: ?
+        line, column = 12, 21
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: :
+        line, column = 12, 25
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: |
+        line, column = 13, 20
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: {
+        line, column = 14, 15
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: }
+        line, column = 14, 19
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: [
+        line, column = 15, 12
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: ]
+        line, column = 15, 15
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: ,
+        line, column = 16, 12
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: >
+        line, column = 17, 17
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: >
+        line, column = 18, 17
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: "
+        line, column = 19, 15
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        # Character: !
+        line, column = 20, 15
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
 
     def not_test(self):
         self.fd = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
