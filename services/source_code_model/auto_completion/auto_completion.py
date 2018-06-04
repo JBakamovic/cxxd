@@ -172,12 +172,9 @@ class AutoCompletion():
                     if member_access or scope_operator:
                         self.auto_complete = self.__get_auto_completion_candidates(contents_filename, original_filename, line, column)
 
-                        # TODO short-circuit the results into candidates to save time?
-                        # self.completion_candidates = self.auto_complete.results
-                        self.completion_candidates = self.__filter_completion_candidates(
-                            self.auto_complete.results,
-                            '' # We haven't got anything to filter with
-                        )
+                        # Member access or scope operator will give us a fresh list so we haven't got anything to filter with.
+                        # Hence, we simply forward all the candidates we've got from clang.
+                        self.completion_candidates = list(self.auto_complete.results)
                     else: # Otherwise, we won't get much from clang so we save some time here ...
                         pass
                 else:
