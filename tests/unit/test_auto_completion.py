@@ -490,6 +490,48 @@ int main() {                                \n\
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
 
+    def test_if_call_returns_true_and_non_empty_candidate_list_for_member_access_via_dot_operator_and_array_subscript(self):
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+int main() {                                \n\
+    P p[2] = {{0, 1}, {2, 3}};              \n\
+    return p[0].                            \n\
+}                                           \n\
+        ')
+
+        line, column = 4, 16
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        print completion_candidates
+        self.assertEqual(success, True)
+        self.assertNotEqual(len(completion_candidates), 0)
+
+    def test_if_call_returns_true_and_non_empty_candidate_list_for_member_access_via_dot_operator_and_function_call(self):
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+P create_p(int x, int y) {return {x, y};}   \n\
+int main() {                                \n\
+    return create_p(1, 2).                  \n\
+}                                           \n\
+        ')
+
+        line, column = 4, 26
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        print completion_candidates
+        self.assertEqual(success, True)
+        self.assertNotEqual(len(completion_candidates), 0)
+
     def test_if_call_returns_true_and_non_empty_candidate_list_for_member_access_via_arrow_operator(self):
         self.fd.write('\
 struct P { int x; int y; };                 \n\
@@ -556,6 +598,106 @@ int main() {                                \n\
         print completion_candidates
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
+
+    def test_if_call_returns_true_and_non_empty_candidate_list_for_usage_of_scope_operator(self):
+        self.fd.write('\
+struct Config { static const int N = 10; }; \n\
+int main() {                                \n\
+    return Config::                         \n\
+}                                           \n\
+        ')
+
+        line, column = 3, 19
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        print completion_candidates
+        self.assertEqual(success, True)
+        self.assertNotEqual(len(completion_candidates), 0)
+
+    def test_if_call_returns_true_and_empty_candidate_list_when_member_access_via_arrow_operator_is_not_yet_formed(self):
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+int main() {                                \n\
+    P p1 = {0, 1};                          \n\
+    P *p2 = &p1;                            \n\
+    p2-                                     \n\
+}                                           \n\
+        ')
+
+        line, column = 5, 7
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+    def test_if_call_returns_true_and_empty_candidate_list_when_array_parenthesis_is_closed(self):
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+int main() {                                \n\
+    P p[2] = {{0, 1}, {2, 3}};              \n\
+    p[0]                                    \n\
+}                                           \n\
+        ')
+
+        line, column = 5, 8
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+    def test_if_call_returns_true_and_empty_candidate_list_when_scope_operator_is_not_yet_formed(self):
+        self.fd.write('\
+struct Config { static const int N = 10; }; \n\
+int main() {                                \n\
+    return Config:                          \n\
+}                                           \n\
+        ')
+
+        line, column = 3, 18
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+    def test_if_call_returns_true_and_empty_candidate_list_when_function_call_parenthesis_is_closed(self):
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+P create_p(int x, int y) {return {x, y};}   \n\
+int main() {                                \n\
+    return create_p(1, 2)                   \n\
+}                                           \n\
+        ')
+
+        line, column = 4, 25
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
 
 
     def not_test(self):
