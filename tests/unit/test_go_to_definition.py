@@ -1,6 +1,5 @@
 import mock
 import os
-import sqlite3
 import unittest
 
 import parser.clang_parser
@@ -114,7 +113,6 @@ class SourceCodeModelGoToDefinitionTest(unittest.TestCase):
         self.assertEqual(def_column, column)
 
     def test_if_call_returns_true_and_definition_is_found_for_non_local_symbol_not_included_via_header_but_found_in_symbol_db_with_current_tunit_being_modified(self):
-        cursor = mock.MagicMock(sqlite3.Cursor)
         made_up_filename, line, column = 'name_of_some_other_translation_unit_extracted_from_symbol_db', 124, 5
         rows = [(made_up_filename, line, column)]
         with mock.patch.object(self.service.symbol_db, 'fetch_symbol_definition_by_usr', return_value=rows) as mock_symbol_db_fetch_symbol_definition_by_usr:

@@ -1,7 +1,6 @@
 import clang.cindex
 import mock
 import os
-import sqlite3
 import unittest
 
 import cxxd_mocks
