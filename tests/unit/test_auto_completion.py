@@ -682,7 +682,71 @@ int main() {                                \n\
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
 
+    def test_if_call_returns_true_and_non_empty_candidate_list_is_returned_while_inserting_or_deleting_characters_that_match_possible_candidates(self):
         self.fd.write('\
+struct P { int x; int y; };                 \n\
+P create_p1(int x, int y) {return {x, y};}  \n\
+P create_p2(int x, int y) {return {x, y};}  \n\
+int main() {                                \n\
+    return create_p                         \n\
+}                                           \n\
+        ')
+
+        line, column = 5, 19
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 2)
+
+        self.fd.seek(0)
+        self.fd.truncate()
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+P create_p1(int x, int y) {return {x, y};}  \n\
+P create_p2(int x, int y) {return {x, y};}  \n\
+int main() {                                \n\
+    return create_p1                        \n\
+}                                           \n\
+        ')
+
+        line, column = 5, 20
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 1)
+
+        self.fd.seek(0)
+        self.fd.truncate()
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+P create_p1(int x, int y) {return {x, y};}  \n\
+P create_p2(int x, int y) {return {x, y};}  \n\
+int main() {                                \n\
+    return create_p                         \n\
+}                                           \n\
+        ')
+
+        line, column = 5, 19
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 2)
+
 }                                           \n\
 int main() {                                \n\
 }                                           \n\
