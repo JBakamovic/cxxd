@@ -749,10 +749,48 @@ int main() {                                \n\
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 2)
 
-}                                           \n\
+    def test_if_call_returns_true_and_empty_candidate_list_for_misspelled_expression_but_returns_a_non_empty_one_once_it_is_spelled_correctly(self):
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+P create_p1(int x, int y) {return {x, y};}  \n\
+P create_p2(int x, int y) {return {x, y};}  \n\
 int main() {                                \n\
+    return create_r                         \n\
 }                                           \n\
         ')
+
+        line, column = 5, 19
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
+        self.fd.seek(0)
+        self.fd.truncate()
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+P create_p1(int x, int y) {return {x, y};}  \n\
+P create_p2(int x, int y) {return {x, y};}  \n\
+int main() {                                \n\
+    return create_                          \n\
+}                                           \n\
+        ')
+
+        line, column = 5, 18
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 2)
 
     def test_if_call_returns_true_and_auto_completion_is_triggered_only_once_and_further_refinements_are_done_with_filtering_existing_candidates(self):
         self.fd.write('\
