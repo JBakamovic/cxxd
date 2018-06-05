@@ -85,6 +85,14 @@ class TranslationUnitMock():
     def diagnostics(self):
         return self.diag
 
+class CodeCompletionResultsMock():
+    def __init__(self):
+        self.candidates = []
+
+    @property
+    def results(self):
+        return self.candidates
+
 class CxxdConfigParserMock():
     def get_configuration_for_target(self, target):
         return './'
