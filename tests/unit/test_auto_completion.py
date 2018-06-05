@@ -18,12 +18,7 @@ def candidate_contains_pattern(candidate, pattern):
 class AutoCompletionTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.test_file                = FileGenerator.gen_simple_cpp_file()
-        #cls.test_file_edited         = FileGenerator.gen_simple_cpp_file(edited=True)
-        cls.test_file_broken         = FileGenerator.gen_broken_cpp_file()
-        #cls.test_file_broken_edited  = FileGenerator.gen_broken_cpp_file(edited=True)
         cls.txt_compilation_database = FileGenerator.gen_txt_compilation_database()
-
         cls.parser = parser.clang_parser.ClangParser(
             cls.txt_compilation_database.name,
             parser.tunit_cache.TranslationUnitCache(parser.tunit_cache.NoCache())
@@ -31,10 +26,6 @@ class AutoCompletionTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        FileGenerator.close_gen_file(cls.test_file)
-        #FileGenerator.close_gen_file(cls.test_file_edited)
-        FileGenerator.close_gen_file(cls.test_file_broken)
-        #FileGenerator.close_gen_file(cls.test_file_broken_edited)
         FileGenerator.close_gen_file(cls.txt_compilation_database)
 
     def setUp(self):
@@ -47,42 +38,23 @@ class AutoCompletionTest(unittest.TestCase):
     def line_to_byte(self, test_file_line_length, line):
         return test_file_line_length*(line-1) + 1
 
-    def test_if_call_returns_true_and_std_vector_candidate_is_returned(self):
-        line, column = 8, 12
-        success, completion_candidates = self.service([
-            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
-            self.test_file.name, self.test_file.name,
-            line,
-            column,
-            self.line_to_byte(29, line)
-        ])
-        print completion_candidates
-        self.assertEqual(success, True)
-        self.assertEqual(len(completion_candidates), 1)
-
-    def test_if_call_returns_true_and_foobar_candidate_is_returned(self):
-        line, column = 9, 15
-        success, completion_candidates = self.service([
-            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
-            self.test_file.name, self.test_file.name,
-            line,
-            column,
-            self.line_to_byte(29, line)
-        ])
-        print completion_candidates
-        self.assertEqual(success, True)
-        self.assertEqual(len(completion_candidates), 1)
-
     def test_if_call_returns_true_and_no_include_header_candidate_is_returned(self):
+        self.fd.write('\
+#include <vector>                           \n\
+                                            \n\
+int main() {                                \n\
+    return 0;                               \n\
+}                                           \n\
+        ')
+
         line, column = 1, 3
         success, completion_candidates = self.service([
             SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
-            self.test_file.name, self.test_file.name,
+            self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(29, line)
+            self.line_to_byte(45, line)
         ])
-        print completion_candidates
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
 
@@ -104,7 +76,6 @@ int main() {                                \n\
             column,
             self.line_to_byte(45, line)
         ])
-        print completion_candidates
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
 
@@ -126,7 +97,6 @@ int main() {                                \n\
             column,
             self.line_to_byte(45, line)
         ])
-        print completion_candidates
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
         for candidate in completion_candidates:
@@ -486,7 +456,6 @@ int main() {                                \n\
             column,
             self.line_to_byte(45, line)
         ])
-        print completion_candidates
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
 
@@ -507,7 +476,6 @@ int main() {                                \n\
             column,
             self.line_to_byte(45, line)
         ])
-        print completion_candidates
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
 
@@ -528,7 +496,6 @@ int main() {                                \n\
             column,
             self.line_to_byte(45, line)
         ])
-        print completion_candidates
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
 
@@ -550,7 +517,6 @@ int main() {                                \n\
             column,
             self.line_to_byte(45, line)
         ])
-        print completion_candidates
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
 
@@ -572,7 +538,6 @@ int main() {                                \n\
             column,
             self.line_to_byte(45, line)
         ])
-        print completion_candidates
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
 
@@ -595,7 +560,6 @@ int main() {                                \n\
             column,
             self.line_to_byte(45, line)
         ])
-        print completion_candidates
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
 
@@ -615,7 +579,6 @@ int main() {                                \n\
             column,
             self.line_to_byte(45, line)
         ])
-        print completion_candidates
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
 
@@ -699,20 +662,29 @@ int main() {                                \n\
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
 
-
-    def not_test(self):
-        self.fd = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
+    def test_if_call_returns_true_and_non_empty_candidate_list_is_returned_when_trying_to_autocomplete_local_function(self):
         self.fd.write('\
-#include <vector>                           \n\
-                                            \n\
-int default_len() {                         \n\
-    return 10;                              \n\
-}                                           \n\
-                                            \n\
+struct P { int x; int y; };                 \n\
+P create_p(int x, int y) {return {x, y};}   \n\
 int main() {                                \n\
-    std::vector<int> v(default_len());      \n\
-    return v.size();                        \n\
+    return cre                              \n\
 }                                           \n\
-                                            \n\
+        ')
+
+        line, column = 4, 14
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertNotEqual(len(completion_candidates), 0)
+
+        self.fd.write('\
+}                                           \n\
+int main() {                                \n\
+}                                           \n\
         ')
 
