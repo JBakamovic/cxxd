@@ -1,7 +1,9 @@
+import mock
 import os
 import tempfile
 import unittest
 
+import cxxd_mocks
 import parser.clang_parser
 import parser.tunit_cache
 from file_generator import FileGenerator
@@ -751,4 +753,87 @@ int main() {                                \n\
 int main() {                                \n\
 }                                           \n\
         ')
+
+    def test_if_call_returns_true_and_auto_completion_is_triggered_only_once_and_further_refinements_are_done_with_filtering_existing_candidates(self):
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+P create_p1(int x, int y) {return {x, y};}  \n\
+P create_p2(int x, int y) {return {x, y};}  \n\
+int main() {                                \n\
+    return create_p                         \n\
+}                                           \n\
+        ')
+
+        dummy_candidates = cxxd_mocks.CodeCompletionResultsMock()
+        candidates = ['create_p1(int x, int y)', 'create_p2(int x, int y)']
+        with mock.patch.object(self.service, '_AutoCompletion__get_auto_completion_candidates', return_value=dummy_candidates) as mock_get_auto_completion_candidates:
+            with mock.patch.object(self.service, '_AutoCompletion__filter_completion_candidates', return_value=candidates) as mock_filter_completion_candidates:
+                line, column = 5, 19
+                success, completion_candidates = self.service([
+                    SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+                    self.fd.name, self.fd.name,
+                    line,
+                    column,
+                    self.line_to_byte(45, line)
+                ])
+        mock_get_auto_completion_candidates.assert_called_once()
+        mock_filter_completion_candidates.assert_called_once()
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 2)
+
+        self.fd.seek(0)
+        self.fd.truncate()
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+P create_p1(int x, int y) {return {x, y};}  \n\
+P create_p2(int x, int y) {return {x, y};}  \n\
+int main() {                                \n\
+    return create_p1                        \n\
+}                                           \n\
+        ')
+
+        dummy_candidates = cxxd_mocks.CodeCompletionResultsMock()
+        candidates = ['create_p1(int x, int y)']
+        with mock.patch.object(self.service, '_AutoCompletion__get_auto_completion_candidates', return_value=dummy_candidates) as mock_get_auto_completion_candidates:
+            with mock.patch.object(self.service, '_AutoCompletion__filter_completion_candidates', return_value=candidates) as mock_filter_completion_candidates:
+                line, column = 5, 20
+                success, completion_candidates = self.service([
+                    SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+                    self.fd.name, self.fd.name,
+                    line,
+                    column,
+                    self.line_to_byte(45, line)
+                ])
+        mock_get_auto_completion_candidates.assert_not_called()
+        mock_filter_completion_candidates.assert_called_once()
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 1)
+
+        self.fd.seek(0)
+        self.fd.truncate()
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+P create_p1(int x, int y) {return {x, y};}  \n\
+P create_p2(int x, int y) {return {x, y};}  \n\
+int main() {                                \n\
+    return create_p                         \n\
+}                                           \n\
+        ')
+
+        dummy_candidates = cxxd_mocks.CodeCompletionResultsMock()
+        candidates = ['create_p1(int x, int y)', 'create_p2(int x, int y)']
+        with mock.patch.object(self.service, '_AutoCompletion__get_auto_completion_candidates', return_value=dummy_candidates) as mock_get_auto_completion_candidates:
+            with mock.patch.object(self.service, '_AutoCompletion__filter_completion_candidates', return_value=candidates) as mock_filter_completion_candidates:
+                line, column = 5, 19
+                success, completion_candidates = self.service([
+                    SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+                    self.fd.name, self.fd.name,
+                    line,
+                    column,
+                    self.line_to_byte(45, line)
+                ])
+        mock_get_auto_completion_candidates.assert_not_called()
+        mock_filter_completion_candidates.assert_called_once()
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 2)
 
