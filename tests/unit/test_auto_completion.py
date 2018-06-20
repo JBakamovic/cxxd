@@ -40,7 +40,7 @@ class AutoCompletionTest(unittest.TestCase):
     def line_to_byte(self, test_file_line_length, line):
         return test_file_line_length*(line-1) + 1
 
-    def test_if_call_returns_true_and_no_include_header_candidate_is_returned(self):
+    def test_if_call_returns_true_and_non_empty_candidate_list_on_include_directive(self):
         self.fd.write('\
 #include <vector>                           \n\
                                             \n\
@@ -58,7 +58,7 @@ int main() {                                \n\
             self.line_to_byte(45, line)
         ])
         self.assertEqual(success, True)
-        self.assertEqual(len(completion_candidates), 0)
+        self.assertNotEqual(len(completion_candidates), 1)
 
     def test_if_call_returns_true_and_std_vector_members_are_returned(self):
         self.fd.write('\
@@ -583,6 +583,27 @@ int main() {                                \n\
         ])
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
+
+    def test_if_call_returns_true_and_non_empty_candidate_list_when_auto_completing_after_parenthesis(self):
+        self.fd.write('\
+struct Config { static const int N = 10; }; \n\
+int main()                                  \n\
+{C                                          \n\
+    return 0;                               \n\
+}                                           \n\
+        ')
+
+        line, column = 3, 2
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertNotEqual(len(completion_candidates), 0)
+        print completion_candidates
 
     def test_if_call_returns_true_and_empty_candidate_list_when_member_access_via_arrow_operator_is_not_yet_formed(self):
         self.fd.write('\

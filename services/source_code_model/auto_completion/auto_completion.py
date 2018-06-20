@@ -91,8 +91,6 @@ def is_whitespace(c):
 def find_symbol_idx(line_string):
     line_string_len = len(line_string)
     for idx, s in enumerate(line_string[::-1]):
-        if idx+1 == line_string_len:
-            return idx
         if not is_identifier(s):
             return idx-1
     return -1
