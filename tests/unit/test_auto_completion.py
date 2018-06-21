@@ -9,6 +9,7 @@ import parser.tunit_cache
 from file_generator import FileGenerator
 from services.source_code_model.auto_completion.auto_completion import AutoCompletion
 from services.source_code_model.auto_completion.auto_completion import SourceCodeModelAutoCompletionRequestId
+from services.source_code_model.auto_completion.auto_completion import AutoCompletionSortingAlgorithmId
 
 def candidate_contains_pattern(candidate, pattern):
     for chunk in candidate.string:
@@ -57,7 +58,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 1)
@@ -78,7 +80,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
@@ -99,7 +102,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
@@ -138,7 +142,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -150,7 +155,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -162,7 +168,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -174,7 +181,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -186,7 +194,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -198,7 +207,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -210,7 +220,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -222,7 +233,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -234,7 +246,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -246,7 +259,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -258,7 +272,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -270,7 +285,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -282,7 +298,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -294,7 +311,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -306,7 +324,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -318,7 +337,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -330,7 +350,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -342,7 +363,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -354,7 +376,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -366,7 +389,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -378,7 +402,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -390,7 +415,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -402,7 +428,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -414,7 +441,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -426,7 +454,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -438,7 +467,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -458,7 +488,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
@@ -478,7 +509,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
@@ -498,7 +530,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
@@ -519,7 +552,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
@@ -540,7 +574,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
@@ -562,7 +597,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
@@ -581,7 +617,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
@@ -601,7 +638,8 @@ int main()                                  \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
@@ -622,7 +660,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -642,7 +681,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -661,7 +701,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -681,7 +722,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -701,7 +743,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
@@ -722,7 +765,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 2)
@@ -744,7 +788,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 1)
@@ -766,7 +811,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 2)
@@ -787,7 +833,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
@@ -809,7 +856,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 2)
@@ -834,7 +882,8 @@ int main() {                                \n\
                     self.fd.name, self.fd.name,
                     line,
                     column,
-                    self.line_to_byte(45, line)
+                    self.line_to_byte(45, line),
+                    AutoCompletionSortingAlgorithmId.BY_PRIORITY
                 ])
         mock_get_auto_completion_candidates.assert_called_once()
         mock_filter_completion_candidates.assert_called_once()
@@ -862,7 +911,8 @@ int main() {                                \n\
                     self.fd.name, self.fd.name,
                     line,
                     column,
-                    self.line_to_byte(45, line)
+                    self.line_to_byte(45, line),
+                    AutoCompletionSortingAlgorithmId.BY_PRIORITY
                 ])
         mock_get_auto_completion_candidates.assert_not_called()
         mock_filter_completion_candidates.assert_called_once()
@@ -890,7 +940,8 @@ int main() {                                \n\
                     self.fd.name, self.fd.name,
                     line,
                     column,
-                    self.line_to_byte(45, line)
+                    self.line_to_byte(45, line),
+                    AutoCompletionSortingAlgorithmId.BY_PRIORITY
                 ])
         mock_get_auto_completion_candidates.assert_not_called()
         mock_filter_completion_candidates.assert_called_once()
@@ -914,7 +965,8 @@ int main() {                                \n\
             self.fd.name, self.fd.name,
             line,
             column,
-            self.line_to_byte(45, line)
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_ALPHABET
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 3)

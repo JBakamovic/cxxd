@@ -102,11 +102,21 @@ def read_line(filename, offset):
     f.close()
     return l
 
+class AutoCompletionSortingAlgorithmId():
+    BY_PRIORITY  = 0x0
+    BY_KIND      = 0x1
+    BY_ALPHABET  = 0x2
+
 class AutoCompletion():
     def __init__(self, parser):
         self.parser = parser
         self.op = {
             SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE : self.__code_complete,
+        }
+        self.sorting_fun = {
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY    : self.__sort_auto_completion_candidates_by_priority,
+            AutoCompletionSortingAlgorithmId.BY_KIND        : self.__sort_auto_completion_candidates_by_kind,
+            AutoCompletionSortingAlgorithmId.BY_ALPHABET    : self.__sort_auto_completion_candidates_by_alphabet,
         }
         self.completion_candidates = []
 
@@ -127,7 +137,7 @@ class AutoCompletion():
                 clang.cindex.TranslationUnit.PARSE_PRECOMPILED_PREAMBLE | \
                 clang.cindex.TranslationUnit.PARSE_INCOMPLETE
 
-        auto_completion_candidates = self.parser.auto_complete(
+        return self.parser.auto_complete(
             self.parser.parse(
                 contents_filename, original_filename,
                 parsing_flags()
@@ -135,8 +145,6 @@ class AutoCompletion():
             line,
             column + 1
         )
-        self.parser.sort_code_completion_results(auto_completion_candidates)
-        return auto_completion_candidates
 
     def __code_complete(self, id, args):
         original_filename = str(args[0])
@@ -144,6 +152,7 @@ class AutoCompletion():
         line              = int(args[2])
         column            = int(args[3])
         offset            = int(args[4]) - 1
+        sorting_algo_id   = int(args[5])
 
         line_string = read_line(contents_filename, offset)
 
@@ -200,6 +209,7 @@ class AutoCompletion():
                     else:
                         logging.error('Unable to extract symbol. Nothing to be done ...')
 
+        self.sorting_fun.get(sorting_algo_id, AutoCompletionSortingAlgorithmId.BY_PRIORITY)(self.completion_candidates)
         return True, self.completion_candidates
 
     def __filter_completion_candidates(self, candidates, pattern):
@@ -210,3 +220,18 @@ class AutoCompletion():
                     filtered_completion_candidates.append(result)
                     break
         return filtered_completion_candidates
+
+    # TODO remove this or
+    def __sort_auto_completion_candidates(self, auto_completion_candidates):
+        self.parser.sort_code_completion_results(auto_completion_candidates)
+
+    def __sort_auto_completion_candidates_by_kind(self, auto_completion_candidates):
+        auto_completion_candidates.sort(key=lambda candidate: candidate.kind)
+
+    def __sort_auto_completion_candidates_by_priority(self, auto_completion_candidates):
+        auto_completion_candidates.sort(key=lambda candidate: candidate.string.priority)
+
+    # TODO Placeholder. This ain't working right now.
+    def __sort_auto_completion_candidates_by_alphabet(self, auto_completion_candidates):
+        auto_completion_candidates.sort(key=lambda candidate: candidate.string[2])
+
