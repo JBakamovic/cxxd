@@ -2,6 +2,7 @@
 * [About](#about)
   * [Features](#features)
   * [Supported platforms](#supported-platforms)
+  * [Dependencies](#dependencies)
 * [API](#api)
   * [Design](#design)
     * [Services](#services)
@@ -46,6 +47,17 @@ Platform | Status | Comments
 Linux | :heavy_check_mark: | Main development environment of this project.
 Windows | :x: | Not officially tested but it might work.
 macOS | :x: | Not officially tested but it might work.
+
+## Dependencies
+Required: `Python2`, `libclang` (with `Python` bindings), `g++`
+
+Optional: `clang-format`, `clang-tidy`
+
+In `Fedora`-based distributions, one may install the dependencies by running:
+* `sudo dnf install python2 clang-devel clang-libs clang-tools-extra`
+
+In `Debian`-based distributions, one may install the dependencies by running:
+* `sudo apt-get install python2.7 libclang-dev clang-tidy clang-format`
 
 # API
 
