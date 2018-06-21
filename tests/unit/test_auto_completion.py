@@ -16,6 +16,8 @@ def candidate_contains_pattern(candidate, pattern):
             return False
     return True
 
+def extract_typed_text_chunk(candidate):
+    return candidate.string[1] # TypedText key is 1
 
 class AutoCompletionTest(unittest.TestCase):
     @classmethod
@@ -603,7 +605,6 @@ int main()                                  \n\
         ])
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
-        print completion_candidates
 
     def test_if_call_returns_true_and_empty_candidate_list_when_member_access_via_arrow_operator_is_not_yet_formed(self):
         self.fd.write('\
@@ -896,3 +897,27 @@ int main() {                                \n\
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 2)
 
+    def test_if_call_returns_true_and_non_empty_candidate_list_sorted_in_alphabetical_order(self):
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+P create_p3(int x, int y) {return {x, y};}  \n\
+P create_p1(int x, int y) {return {x, y};}  \n\
+P create_p2(int x, int y) {return {x, y};}  \n\
+int main() {                                \n\
+    return create_p                         \n\
+}                                           \n\
+        ')
+
+        line, column = 6, 19
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line)
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 3)
+        self.assertEqual(extract_typed_text_chunk(completion_candidates[0]).spelling, "create_p1")
+        self.assertEqual(extract_typed_text_chunk(completion_candidates[1]).spelling, "create_p2")
+        self.assertEqual(extract_typed_text_chunk(completion_candidates[2]).spelling, "create_p3")
