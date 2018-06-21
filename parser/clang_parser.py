@@ -70,6 +70,12 @@ class ClangParser():
     def auto_complete(self, tunit, line, column):
         return tunit.codeComplete(tunit.spelling, line, column)
 
+    def sort_code_completion_results(self, auto_completion_candidates):
+        _libclang = clang.cindex.conf.get_cindex_library()
+        _libclang.clang_sortCodeCompletionResults.argtypes = [clang.cindex.CCRStructure]
+        _libclang.clang_sortCodeCompletionResults.restype  = None
+        _libclang.clang_sortCodeCompletionResults(auto_completion_candidates.results, len(auto_completion_candidates.results))
+
     def parse(self, contents_filename, original_filename, opts = clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD):
         def do_parse(contents_filename, original_filename):
             try:
