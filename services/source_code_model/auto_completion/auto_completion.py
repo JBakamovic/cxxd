@@ -127,7 +127,7 @@ class AutoCompletion():
                 clang.cindex.TranslationUnit.PARSE_PRECOMPILED_PREAMBLE | \
                 clang.cindex.TranslationUnit.PARSE_INCOMPLETE
 
-        return self.parser.auto_complete(
+        auto_completion_candidates = self.parser.auto_complete(
             self.parser.parse(
                 contents_filename, original_filename,
                 parsing_flags()
@@ -135,6 +135,8 @@ class AutoCompletion():
             line,
             column + 1
         )
+        self.parser.sort_code_completion_results(auto_completion_candidates)
+        return auto_completion_candidates
 
     def __code_complete(self, id, args):
         original_filename = str(args[0])
