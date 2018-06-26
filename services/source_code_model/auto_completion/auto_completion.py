@@ -209,7 +209,7 @@ class AutoCompletion():
                     else:
                         logging.error('Unable to extract symbol. Nothing to be done ...')
 
-        self.sorting_fun.get(sorting_algo_id, AutoCompletionSortingAlgorithmId.BY_PRIORITY)(self.completion_candidates)
+        self.sorting_fun.get(sorting_algo_id, self.__sort_auto_completion_candidates_by_priority)(self.completion_candidates)
         return True, self.completion_candidates
 
     def __filter_completion_candidates(self, candidates, pattern):
