@@ -227,7 +227,10 @@ class AutoCompletion():
     def __sort_auto_completion_candidates_by_priority(self, auto_completion_candidates):
         auto_completion_candidates.sort(key=lambda candidate: candidate.string.priority)
 
-    # TODO Placeholder. This ain't working right now.
     def __sort_auto_completion_candidates_by_alphabet(self, auto_completion_candidates):
-        auto_completion_candidates.sort(key=lambda candidate: candidate.string[2])
-
+        def extract_typed_text_completion_chunk(completion_string):
+            for chunk in completion_string:
+                if chunk.isKindTypedText():
+                    return chunk
+            return None
+        auto_completion_candidates.sort(key=lambda candidate: extract_typed_text_completion_chunk(candidate.string).spelling)
