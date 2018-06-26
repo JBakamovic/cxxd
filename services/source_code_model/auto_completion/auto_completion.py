@@ -221,10 +221,6 @@ class AutoCompletion():
                     break
         return filtered_completion_candidates
 
-    # TODO remove this or
-    def __sort_auto_completion_candidates(self, auto_completion_candidates):
-        self.parser.sort_code_completion_results(auto_completion_candidates)
-
     def __sort_auto_completion_candidates_by_kind(self, auto_completion_candidates):
         auto_completion_candidates.sort(key=lambda candidate: candidate.kind)
 
