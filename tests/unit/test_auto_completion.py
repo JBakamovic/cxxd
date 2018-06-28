@@ -110,6 +110,36 @@ int main() {                                \n\
         for candidate in completion_candidates:
             self.assertTrue(candidate_contains_pattern(candidate, 'res'))
 
+    def test_if_call_returns_true_and_non_empty_candidate_list_for_pattern_which_is_not_sth_that_any_of_the_candidates_starts_with(self):
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+bool created_1 = false;                     \n\
+bool created_2 = false;                     \n\
+P create_p3(int x, int y) {return {x, y};}  \n\
+P create_p1(int x, int y) {return {x, y};}  \n\
+P create_p2(int x, int y) {return {x, y};}  \n\
+int main() {                                \n\
+    return ate                              \n\
+}                                           \n\
+        ')
+
+        line, column = 8, 14
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_ALPHABET
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 5)
+        self.assertEqual(extract_typed_text_chunk(completion_candidates[0]).spelling, "create_p1")
+        self.assertEqual(extract_typed_text_chunk(completion_candidates[1]).spelling, "create_p2")
+        self.assertEqual(extract_typed_text_chunk(completion_candidates[2]).spelling, "create_p3")
+        self.assertEqual(extract_typed_text_chunk(completion_candidates[3]).spelling, "created_1")
+        self.assertEqual(extract_typed_text_chunk(completion_candidates[4]).spelling, "created_2")
+
     def test_if_call_returns_true_and_empty_candidates_list_for_a_column_pointing_to_other_special_characters(self):
         self.fd.write('\
 int main() {                                \n\
