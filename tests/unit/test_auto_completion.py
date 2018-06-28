@@ -1,9 +1,9 @@
+import clang.cindex
 import mock
 import os
 import tempfile
 import unittest
 
-import cxxd_mocks
 import parser.clang_parser
 import parser.tunit_cache
 from file_generator import FileGenerator
@@ -862,7 +862,7 @@ int main() {                                \n\
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 2)
 
-    def test_if_call_returns_true_and_auto_completion_is_triggered_only_once_and_further_refinements_are_done_with_filtering_existing_candidates(self):
+    def test_if_call_returns_true_and_auto_completion_is_triggered_only_once_and_further_refinements_are_done_by_filtering_existing_candidates(self):
         self.fd.write('\
 struct P { int x; int y; };                 \n\
 P create_p1(int x, int y) {return {x, y};}  \n\
@@ -872,10 +872,23 @@ int main() {                                \n\
 }                                           \n\
         ')
 
-        dummy_candidates = cxxd_mocks.CodeCompletionResultsMock()
-        candidates = ['create_p1(int x, int y)', 'create_p2(int x, int y)']
-        with mock.patch.object(self.service, '_AutoCompletion__get_auto_completion_candidates', return_value=dummy_candidates) as mock_get_auto_completion_candidates:
-            with mock.patch.object(self.service, '_AutoCompletion__filter_completion_candidates', return_value=candidates) as mock_filter_completion_candidates:
+        candidate_0_completion_string = mock.MagicMock(clang.cindex.CompletionString)
+        type(candidate_0_completion_string).priority = 0
+        candidate_0 = mock.MagicMock(clang.cindex.CodeCompletionResult)
+        type(candidate_0).kind = clang.cindex.CursorKind.FUNCTION_DECL
+        type(candidate_0).string = candidate_0_completion_string
+
+        candidate_1_completion_string = mock.MagicMock(clang.cindex.CompletionString)
+        type(candidate_1_completion_string).priority = 0
+        candidate_1 = mock.MagicMock(clang.cindex.CodeCompletionResult)
+        type(candidate_1).kind = clang.cindex.CursorKind.FUNCTION_DECL
+        type(candidate_1).string = candidate_1_completion_string
+
+        candidates = mock.MagicMock(clang.cindex.CodeCompletionResults)
+        type(candidates).results = [candidate_0, candidate_1]
+
+        with mock.patch.object(self.service, '_AutoCompletion__get_auto_completion_candidates', return_value=candidates) as mock_get_auto_completion_candidates:
+            with mock.patch.object(self.service, '_AutoCompletion__filter_completion_candidates', return_value=candidates.results) as mock_filter_completion_candidates:
                 line, column = 5, 19
                 success, completion_candidates = self.service([
                     SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
@@ -901,10 +914,8 @@ int main() {                                \n\
 }                                           \n\
         ')
 
-        dummy_candidates = cxxd_mocks.CodeCompletionResultsMock()
-        candidates = ['create_p1(int x, int y)']
-        with mock.patch.object(self.service, '_AutoCompletion__get_auto_completion_candidates', return_value=dummy_candidates) as mock_get_auto_completion_candidates:
-            with mock.patch.object(self.service, '_AutoCompletion__filter_completion_candidates', return_value=candidates) as mock_filter_completion_candidates:
+        with mock.patch.object(self.service, '_AutoCompletion__get_auto_completion_candidates', return_value=candidates) as mock_get_auto_completion_candidates:
+            with mock.patch.object(self.service, '_AutoCompletion__filter_completion_candidates', return_value=candidates.results[0:1]) as mock_filter_completion_candidates:
                 line, column = 5, 20
                 success, completion_candidates = self.service([
                     SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
@@ -930,10 +941,8 @@ int main() {                                \n\
 }                                           \n\
         ')
 
-        dummy_candidates = cxxd_mocks.CodeCompletionResultsMock()
-        candidates = ['create_p1(int x, int y)', 'create_p2(int x, int y)']
-        with mock.patch.object(self.service, '_AutoCompletion__get_auto_completion_candidates', return_value=dummy_candidates) as mock_get_auto_completion_candidates:
-            with mock.patch.object(self.service, '_AutoCompletion__filter_completion_candidates', return_value=candidates) as mock_filter_completion_candidates:
+        with mock.patch.object(self.service, '_AutoCompletion__get_auto_completion_candidates', return_value=candidates) as mock_get_auto_completion_candidates:
+            with mock.patch.object(self.service, '_AutoCompletion__filter_completion_candidates', return_value=candidates.results) as mock_filter_completion_candidates:
                 line, column = 5, 19
                 success, completion_candidates = self.service([
                     SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
