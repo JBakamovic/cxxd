@@ -2,98 +2,15 @@ import clang.cindex
 import logging
 import os
 
+from expression_parser_utils import *
+
 class SourceCodeModelAutoCompletionRequestId():
     CODE_COMPLETE     = 0x0
 
-def is_identifier(char):
-    is_digit = char.isdigit()
-    is_alpha = char.isalpha()
-    is_underscore = char == '_'
-    return is_digit or is_alpha or is_underscore
-
-def is_scope_operator(expr):
-    assert len(expr) >= 2
-    return expr[0] == ':' and expr[1] == ':'
-
-def is_member_of_ptr(expr):
-    assert len(expr) >= 2
-    return expr[0] == '-' and expr[1] == '>'
-
-def is_member_of_object(expr):
-    assert len(expr) >= 2
-    if expr[1] == '.':
-        if is_identifier(expr[0]):
-            return True
-        elif expr[0] == ')':
-            return True
-        elif expr[0] == ']':
-            return True
-    return False
-
-def is_ptr_to_member_of_object(expr):
-    assert len(expr) >= 2
-    return expr[0] == '.' and expr[1] == '*'
-
-def is_ptr_to_member_of_ptr(expr):
-    assert len(expr) >= 2
-    return expr[0] == '>' and expr[1] == '*'
-
-def is_member_access(expr):
-    assert len(expr) >= 2
-    return is_member_of_object(expr) or is_member_of_ptr(expr) or is_ptr_to_member_of_object(expr) or is_ptr_to_member_of_ptr(expr)
-
-def is_special_character(char):
-    special_characters = [
-        '`',
-        '~',
-        '!',
-        '@',
-        '#',
-        '$',
-        '%',
-        '^',
-        '&',
-        '*',
-        '(',
-        ')',
-        #'_',
-        '+',
-        '-',
-        '=',
-        '/',
-        '\\',
-        '?',
-        '|',
-        '{',
-        '}',
-        '[',
-        ']',
-        '.',
-        ',',
-        '>',
-        '<',
-        ';',
-        ':',
-        '\'',
-        '"',
-    ]
-    return char in special_characters
-
-def is_carriage_return(c):
-    return c == '\n' or c == '\r'
-
-def is_semicolon(c):
-    return c == ';'
-
-def is_whitespace(c):
-    return c.isspace()
-
-def find_symbol_idx(line_string):
-    line_string_len = len(line_string)
-    for idx, s in enumerate(line_string[::-1]):
-        if not is_identifier(s):
-            return idx-1
-    return -1
+class AutoCompletionSortingAlgorithmId():
+    BY_PRIORITY  = 0x0
+    BY_KIND      = 0x1
+    BY_ALPHABET  = 0x2
 
 def read_line(filename, offset):
     f = open(filename, 'r')
@@ -101,11 +18,6 @@ def read_line(filename, offset):
     l = f.readline()
     f.close()
     return l
-
-class AutoCompletionSortingAlgorithmId():
-    BY_PRIORITY  = 0x0
-    BY_KIND      = 0x1
-    BY_ALPHABET  = 0x2
 
 class AutoCompletion():
     def __init__(self, parser):
@@ -187,9 +99,9 @@ class AutoCompletion():
                     else: # Otherwise, we won't get much from clang so we save some time here ...
                         pass
                 else:
-                    idx = find_symbol_idx(line_string[0:next_char_idx]) # [begin:end] slice is actually [begin:end> or [begin:end-1]
+                    idx = last_occurence_of_non_identifier(line_string[0:next_char_idx]) # [begin:end] slice is actually [begin:end> or [begin:end-1]
                     if idx != -1:
-                        symbol = line_string[(curr_char_idx-idx):next_char_idx]
+                        symbol = line_string[(curr_char_idx-idx+1):next_char_idx]
                         if len(self.completion_candidates) == 0 or symbol == '':
                             del self.completion_candidates[:]
                             self.auto_complete = self.__get_auto_completion_candidates(contents_filename, original_filename, line, column)
