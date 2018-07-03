@@ -696,7 +696,74 @@ int main() {                                \n\
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
 
+    def test_if_call_returns_true_and_non_empty_candidate_list_when_array_parenthesis_is_opened(self):
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+int main() {                                \n\
+    P p[2] = {{0, 1}, {2, 3}};              \n\
+    p                                       \n\
+}                                           \n\
+        ')
+
+        line, column = 4, 5
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
+        ])
+        self.assertEqual(success, True)
+        self.assertNotEqual(len(completion_candidates), 0)
+
+        self.fd.seek(0)
+        self.fd.truncate()
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+int main() {                                \n\
+    P p[2] = {{0, 1}, {2, 3}};              \n\
+    p[                                      \n\
+}                                           \n\
+        ')
+
+        old_len_completion_candidates = len(completion_candidates)
+
+        line, column = 4, 6
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), old_len_completion_candidates)
+
     def test_if_call_returns_true_and_empty_candidate_list_when_array_parenthesis_is_closed(self):
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+int main() {                                \n\
+    P p[2] = {{0, 1}, {2, 3}};              \n\
+    p                                       \n\
+}                                           \n\
+        ')
+
+        line, column = 4, 5
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
+        ])
+        self.assertEqual(success, True)
+        self.assertNotEqual(len(completion_candidates), 0)
+
+        self.fd.seek(0)
+        self.fd.truncate()
         self.fd.write('\
 struct P { int x; int y; };                 \n\
 int main() {                                \n\
@@ -705,7 +772,7 @@ int main() {                                \n\
 }                                           \n\
         ')
 
-        line, column = 5, 8
+        line, column = 4, 8
         success, completion_candidates = self.service([
             SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
             self.fd.name, self.fd.name,
@@ -737,12 +804,77 @@ int main() {                                \n\
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
 
+    def test_if_call_returns_true_and_non_empty_candidate_list_when_function_call_parenthesis_is_opened(self):
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+P create_p(int x, int y) {return {x, y};}   \n\
+int main() {                                \n\
+    return create_p                         \n\
+}                                           \n\
+        ')
+
+        line, column = 4, 19
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 1)
+
+        self.fd.seek(0)
+        self.fd.truncate()
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+P create_p(int x, int y) {return {x, y};}   \n\
+int main() {                                \n\
+    return create_p(                        \n\
+}                                           \n\
+        ')
+
+        line, column = 4, 20
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 1)
+
     def test_if_call_returns_true_and_empty_candidate_list_when_function_call_parenthesis_is_closed(self):
         self.fd.write('\
 struct P { int x; int y; };                 \n\
 P create_p(int x, int y) {return {x, y};}   \n\
 int main() {                                \n\
-    return create_p(1, 2)                   \n\
+    return create_p                         \n\
+}                                           \n\
+        ')
+
+        line, column = 4, 19
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 1)
+
+        self.fd.seek(0)
+        self.fd.truncate()
+        self.fd.write('\
+struct P { int x; int y; };                 \n\
+P create_p(int x, int y) {return {x, y};}   \n\
+int main() {                                \n\
+    return create_p(1, 0)                   \n\
 }                                           \n\
         ')
 
