@@ -81,6 +81,10 @@ class AutoCompletion():
                 del self.completion_candidates[:]
             elif is_whitespace(current_char):
                 del self.completion_candidates[:]
+            elif is_opening_paren(current_char):
+                pass
+            elif is_closing_paren(current_char):
+                del self.completion_candidates[:]
             else:
                 if is_special_character(current_char):
                     # Special character might indicate that we're finished with the expression.

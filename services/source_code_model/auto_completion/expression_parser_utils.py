@@ -81,6 +81,15 @@ def is_semicolon(c):
 def is_whitespace(c):
     return c.isspace()
 
+def is_opening_paren(c):
+    return c == '(' or c == '[' or c == '{'
+
+def is_closing_paren(c):
+    return c == ')' or c == ']' or c == '}'
+
+def is_paren(c):
+    return is_opening_paren(c) or is_closing_paren(c)
+
 def last_occurence_of_non_identifier(string):
     for idx, char in enumerate(string[::-1]):
         if not is_identifier(char):
