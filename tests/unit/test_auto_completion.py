@@ -696,7 +696,7 @@ int main() {                                \n\
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
 
-    def test_if_call_returns_true_and_non_empty_candidate_list_when_array_parenthesis_is_opened(self):
+    def test_if_call_returns_true_and_empty_candidate_list_when_array_parenthesis_is_opened(self):
         self.fd.write('\
 struct P { int x; int y; };                 \n\
 int main() {                                \n\
@@ -727,8 +727,6 @@ int main() {                                \n\
 }                                           \n\
         ')
 
-        old_len_completion_candidates = len(completion_candidates)
-
         line, column = 4, 6
         success, completion_candidates = self.service([
             SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
@@ -739,7 +737,7 @@ int main() {                                \n\
             AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
-        self.assertEqual(len(completion_candidates), old_len_completion_candidates)
+        self.assertEqual(len(completion_candidates), 0)
 
     def test_if_call_returns_true_and_empty_candidate_list_when_array_parenthesis_is_closed(self):
         self.fd.write('\
@@ -845,7 +843,7 @@ int main() {                                \n\
             AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
         self.assertEqual(success, True)
-        self.assertEqual(len(completion_candidates), 1)
+        self.assertEqual(len(completion_candidates), 0)
 
     def test_if_call_returns_true_and_empty_candidate_list_when_function_call_parenthesis_is_closed(self):
         self.fd.write('\
