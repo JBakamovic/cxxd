@@ -58,6 +58,9 @@ class AutoCompletion():
             column + 1
         )
 
+    def __drop_completion_candidate_list(self):
+        del self.completion_candidates[:]
+
     def __code_complete(self, id, args):
         original_filename = str(args[0])
         contents_filename = str(args[1])
@@ -75,53 +78,47 @@ class AutoCompletion():
         if curr_char_idx < len(line_string):
             current_char = line_string[curr_char_idx]
 
+            # First, let's handle the obvious non-identifiers ...
             if is_carriage_return(current_char):
-                del self.completion_candidates[:]
+                self.__drop_completion_candidate_list()
             elif is_semicolon(current_char):
-                del self.completion_candidates[:]
+                self.__drop_completion_candidate_list()
             elif is_whitespace(current_char):
-                del self.completion_candidates[:]
+                self.__drop_completion_candidate_list()
             elif is_opening_paren(current_char) or is_closing_paren(current_char):
-                del self.completion_candidates[:]
-            else:
-                if is_special_character(current_char):
-                    # Special character might indicate that we're finished with the expression.
-                    del self.completion_candidates[:]
-
-                    # However, in case of member access or scope operator, clang will be able to give us meaningful
-                    # completion candidates so we ask for more.
-                    member_access  = is_member_access(line_string[prev_char_idx:next_char_idx])  if curr_char_idx != 0 else False
-                    scope_operator = is_scope_operator(line_string[prev_char_idx:next_char_idx]) if curr_char_idx != 0 else False
-                    if member_access or scope_operator:
+                self.__drop_completion_candidate_list()
+            # Member access or scope operator will give us a fresh list of new candidates
+            elif is_member_access(line_string[prev_char_idx:next_char_idx]) or\
+                is_scope_operator(line_string[prev_char_idx:next_char_idx]):
+                self.__drop_completion_candidate_list()
+                self.auto_complete = self.__get_auto_completion_candidates(contents_filename, original_filename, line, column)
+                self.completion_candidates = list(self.auto_complete.results) # Can't do any pre-filtering here
+            # We pay more attention when handling identifiers
+            elif is_identifier(current_char):
+                idx = last_occurence_of_non_identifier(line_string[0:next_char_idx]) # [begin:end] slice is actually [begin:end> or [begin:end-1]
+                if idx != -1:
+                    symbol = line_string[(curr_char_idx-idx+1):next_char_idx]
+                    if len(self.completion_candidates) == 0 or symbol == '':
+                        self.__drop_completion_candidate_list()
                         self.auto_complete = self.__get_auto_completion_candidates(contents_filename, original_filename, line, column)
-
-                        # Member access or scope operator will give us a fresh list so we haven't got anything to filter with.
-                        # Hence, we simply forward all the candidates we've got from clang.
-                        self.completion_candidates = list(self.auto_complete.results)
-                    else: # Otherwise, we won't get much from clang so we save some time here ...
-                        pass
-                else:
-                    idx = last_occurence_of_non_identifier(line_string[0:next_char_idx]) # [begin:end] slice is actually [begin:end> or [begin:end-1]
-                    if idx != -1:
-                        symbol = line_string[(curr_char_idx-idx+1):next_char_idx]
-                        if len(self.completion_candidates) == 0 or symbol == '':
-                            del self.completion_candidates[:]
-                            self.auto_complete = self.__get_auto_completion_candidates(contents_filename, original_filename, line, column)
-                            self.completion_candidates = self.__filter_completion_candidates(
-                                self.auto_complete.results,
-                                symbol.strip()
-                            ) # At this point we might already have something to work with (e.g. part of the string we may trigger filtering with)
-                        else:
-                            # TODO This situation can be improved further by:
-                            #       * if moving forward we can use list of already filtered candidates
-                            #       * if moving backwards (backspace, delete) we have to re-use all (non-filtered)
-                            #         candidates list or cache one ourselves?
-                            self.completion_candidates = self.__filter_completion_candidates(
-                                self.auto_complete.results,
-                                symbol.strip()
-                            ) # At this point we might already have something to work with (e.g. part of the string we may trigger filtering with)   
+                        self.completion_candidates = self.__filter_completion_candidates(
+                            self.auto_complete.results,
+                            symbol.strip()
+                        ) # At this point we might already have something to work with (e.g. part of the string we may trigger filtering with)
                     else:
-                        logging.error('Unable to extract symbol. Nothing to be done ...')
+                        # TODO This situation can be improved further by:
+                        #       * if moving forward we can use list of already filtered candidates
+                        #       * if moving backwards (backspace, delete) we have to re-use all (non-filtered)
+                        #         candidates list or cache one ourselves?
+                        self.completion_candidates = self.__filter_completion_candidates(
+                            self.auto_complete.results,
+                            symbol.strip()
+                        ) # At this point we might already have something to work with (e.g. part of the string we may trigger filtering with)   
+                else:
+                    logging.error('Unable to extract symbol. Nothing to be done ...')
+            # Other special characters
+            else:
+                self.__drop_completion_candidate_list()
 
         self.sorting_fun.get(sorting_algo_id, self.__sort_auto_completion_candidates_by_priority)(self.completion_candidates)
         return True, self.completion_candidates
