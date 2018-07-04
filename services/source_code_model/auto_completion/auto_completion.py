@@ -98,24 +98,25 @@ class AutoCompletion():
                 idx = last_occurence_of_non_identifier(line_string[0:next_char_idx]) # [begin:end] slice is actually [begin:end> or [begin:end-1]
                 if idx != -1:
                     symbol = line_string[(curr_char_idx-idx+1):next_char_idx]
-                    if len(self.completion_candidates) == 0 or symbol == '':
-                        self.__drop_completion_candidate_list()
-                        self.auto_complete = self.__get_auto_completion_candidates(contents_filename, original_filename, line, column)
-                        self.completion_candidates = self.__filter_completion_candidates(
-                            self.auto_complete.results,
-                            symbol.strip()
-                        ) # At this point we might already have something to work with (e.g. part of the string we may trigger filtering with)
-                    else:
-                        # TODO This situation can be improved further by:
-                        #       * if moving forward we can use list of already filtered candidates
-                        #       * if moving backwards (backspace, delete) we have to re-use all (non-filtered)
-                        #         candidates list or cache one ourselves?
-                        self.completion_candidates = self.__filter_completion_candidates(
-                            self.auto_complete.results,
-                            symbol.strip()
-                        ) # At this point we might already have something to work with (e.g. part of the string we may trigger filtering with)   
                 else:
-                    logging.error('Unable to extract symbol. Nothing to be done ...')
+                    symbol = line_string[0:next_char_idx] # If no non-identifier is found in [0:next_char_idx] range, then we have our symbol already
+
+                if len(self.completion_candidates) == 0 or symbol == '':
+                    self.__drop_completion_candidate_list()
+                    self.auto_complete = self.__get_auto_completion_candidates(contents_filename, original_filename, line, column)
+                    self.completion_candidates = self.__filter_completion_candidates(
+                        self.auto_complete.results,
+                        symbol.strip()
+                    ) # At this point we might already have something to work with (e.g. part of the string we may trigger filtering with)
+                else:
+                    # TODO This situation can be improved further by:
+                    #       * if moving forward we can use list of already filtered candidates
+                    #       * if moving backwards (backspace, delete) we have to re-use all (non-filtered)
+                    #         candidates list or cache one ourselves?
+                    self.completion_candidates = self.__filter_completion_candidates(
+                        self.auto_complete.results,
+                        symbol.strip()
+                    ) # At this point we might already have something to work with (e.g. part of the string we may trigger filtering with)   
             # Other special characters
             else:
                 self.__drop_completion_candidate_list()
