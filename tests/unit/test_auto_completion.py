@@ -1172,6 +1172,36 @@ int main() {                                \n\
         self.assertEqual(extract_typed_text_chunk(completion_candidates[2]).spelling, "create_p2")
         self.assertEqual(extract_typed_text_chunk(completion_candidates[3]).spelling, "created_1")
         self.assertEqual(extract_typed_text_chunk(completion_candidates[4]).spelling, "created_2")
+
+    def test_if_call_returns_true_and_auto_completion_doesnt_work_when_inside_the_udt(self):
+        self.fd.write('\
+int my_var = 59;                            \n\
+class Point {                               \n\
+public:                                     \n\
+  Point(int x, int y) : _x(x), _y(y) {      \n\
+    my_                                     \n\
+  }                                         \n\
+                                            \n\
+private:                                    \n\
+  void calc_z() {_z = _x + _y;}             \n\
+                                            \n\
+private:                                    \n\
+  int _x; int _y; int _z;                   \n\
+};                                          \n\
+        ')
+
+        line, column = 5, 7
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
     def test_if_call_returns_true_and_macro_auto_completion_doesnt_work(self):
         self.fd.write('\
 #define MY_VAR 5                            \n\
