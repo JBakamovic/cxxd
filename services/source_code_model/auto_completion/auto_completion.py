@@ -101,8 +101,7 @@ class AutoCompletion():
                 else:
                     symbol = line_string[0:next_char_idx] # If no non-identifier is found in [0:next_char_idx] range, then we have our symbol already
 
-                if len(self.completion_candidates) == 0 or symbol == '':
-                    self.__drop_completion_candidate_list()
+                if len(self.completion_candidates) == 0:
                     self.auto_complete = self.__get_auto_completion_candidates(contents_filename, original_filename, line, column)
                     self.completion_candidates = self.__filter_completion_candidates(
                         self.auto_complete.results,
