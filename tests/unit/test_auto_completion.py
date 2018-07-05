@@ -1172,6 +1172,27 @@ int main() {                                \n\
         self.assertEqual(extract_typed_text_chunk(completion_candidates[2]).spelling, "create_p2")
         self.assertEqual(extract_typed_text_chunk(completion_candidates[3]).spelling, "created_1")
         self.assertEqual(extract_typed_text_chunk(completion_candidates[4]).spelling, "created_2")
+    def test_if_call_returns_true_and_macro_auto_completion_doesnt_work(self):
+        self.fd.write('\
+#define MY_VAR 5                            \n\
+int main() {                                \n\
+MY                                          \n\
+}                                           \n\
+        ')
+
+        line, column = 3, 2
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
+        ])
+        print completion_candidates
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
     def test_if_call_returns_true_and_non_empty_candidate_list_when_we_are_completing_at_column_nr_one(self):
         self.fd.write('\
 int my_var = 5;                             \n\
@@ -1212,3 +1233,4 @@ my_                                         \n\
         ])
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 1)
+
