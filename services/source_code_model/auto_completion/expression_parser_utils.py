@@ -5,15 +5,18 @@ def is_identifier(char):
     return is_digit or is_alpha or is_underscore
 
 def is_scope_operator(expr):
-    assert len(expr) >= 2
+    if len(expr) < 2:
+        return False
     return expr[0] == ':' and expr[1] == ':'
 
 def is_member_of_ptr(expr):
-    assert len(expr) >= 2
+    if len(expr) < 2:
+        return False
     return expr[0] == '-' and expr[1] == '>'
 
 def is_member_of_object(expr):
-    assert len(expr) >= 2
+    if len(expr) < 2:
+        return False
     if expr[1] == '.':
         if is_identifier(expr[0]):
             return True
@@ -24,15 +27,16 @@ def is_member_of_object(expr):
     return False
 
 def is_ptr_to_member_of_object(expr):
-    assert len(expr) >= 2
+    if len(expr) < 2:
+        return False
     return expr[0] == '.' and expr[1] == '*'
 
 def is_ptr_to_member_of_ptr(expr):
-    assert len(expr) >= 2
+    if len(expr) < 2:
+        return False
     return expr[0] == '>' and expr[1] == '*'
 
 def is_member_access(expr):
-    assert len(expr) >= 2
     return is_member_of_object(expr) or is_member_of_ptr(expr) or is_ptr_to_member_of_object(expr) or is_ptr_to_member_of_ptr(expr)
 
 def is_special_character(char):

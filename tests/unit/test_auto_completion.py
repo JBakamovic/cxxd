@@ -1172,6 +1172,27 @@ int main() {                                \n\
         self.assertEqual(extract_typed_text_chunk(completion_candidates[2]).spelling, "create_p2")
         self.assertEqual(extract_typed_text_chunk(completion_candidates[3]).spelling, "created_1")
         self.assertEqual(extract_typed_text_chunk(completion_candidates[4]).spelling, "created_2")
+    def test_if_call_returns_true_and_non_empty_candidate_list_when_we_are_completing_at_column_nr_one(self):
+        self.fd.write('\
+int my_var = 5;                             \n\
+int main() {                                \n\
+m                                           \n\
+}                                           \n\
+        ')
+
+        line, column = 3, 1
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
+        ])
+        print completion_candidates
+        self.assertEqual(success, True)
+        self.assertNotEqual(len(completion_candidates), 0)
+
     def test_if_call_returns_true_and_non_empty_candidate_list_when_there_is_no_non_identifier_prior_to_line_column_we_are_completing_at(self):
         self.fd.write('\
 int my_var = 5;                             \n\

@@ -116,7 +116,7 @@ class AutoCompletion():
                     self.completion_candidates = self.__filter_completion_candidates(
                         self.auto_complete.results,
                         symbol.strip()
-                    ) # At this point we might already have something to work with (e.g. part of the string we may trigger filtering with)   
+                    ) # At this point we might already have something to work with (e.g. part of the string we may trigger filtering with)
             # Other special characters
             else:
                 self.__drop_completion_candidate_list()
