@@ -1219,7 +1219,6 @@ MY                                          \n\
             self.line_to_byte(45, line),
             AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
-        print completion_candidates
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 0)
 
@@ -1240,7 +1239,6 @@ m                                           \n\
             self.line_to_byte(45, line),
             AutoCompletionSortingAlgorithmId.BY_PRIORITY
         ])
-        print completion_candidates
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
 
