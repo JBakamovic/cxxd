@@ -159,7 +159,7 @@ class CxxdIntegrationTest(unittest.TestCase):
         self.assertNotEqual(self.source_code_model_cb_result['type_deduction'].spelling, '')
 
     def test_source_code_model_semantic_syntax_highlight_request(self):
-        cxxd.api.source_code_model_semantic_syntax_highlight_request(self.handle, self.fut, self.fut)
+        cxxd.api.source_code_model_semantic_syntax_highlight_request(self.handle, self.fut, self.fut, 1, 10)
         self.source_code_model_cb_result.wait_until_available()
         self.assertTrue(self.source_code_model_cb_result['semantic_syntax_hl'].status)
         self.assertNotEqual(self.source_code_model_cb_result['semantic_syntax_hl'].tunit_spelling, '')

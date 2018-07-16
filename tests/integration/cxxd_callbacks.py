@@ -96,8 +96,8 @@ class SemanticSyntaxHighlightCallbackResult():
             ast_node_id_list.append(ast_node_id)
 
         ast_node_id_list = []
-        tunit, traverse = args
-        traverse(tunit, callback, ast_node_id_list)
+        tunit, line_begin, line_end, traverse = args
+        traverse(tunit, line_begin, line_end, callback, ast_node_id_list)
         self.semantic_syntax_highlight_status.value = success
         self.semantic_syntax_highlight_tunit_spelling.value = tunit.spelling[0:SemanticSyntaxHighlightCallbackResult.TUNIT_FILENAME_LENGTH_MAX]
         self.semantic_syntax_highlight_num_of_ast_nodes.value = len(ast_node_id_list)
