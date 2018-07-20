@@ -13,6 +13,7 @@ class Diagnostics():
     def __diagnostics_visitor__(self, diagnostics_iterator, client_callback, client_data):
         for diag in diagnostics_iterator:
             client_callback(
+                diag.location.file.name if diag.location.file else '',
                 diag.location.line,
                 diag.location.column,
                 diag.spelling,
