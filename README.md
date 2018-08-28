@@ -54,10 +54,10 @@ Required: `Python2`, `libclang` (with `Python` bindings), `g++`
 Optional: `clang-format`, `clang-tidy`
 
 In `Fedora`-based distributions, one may install the dependencies by running:
-* `sudo dnf install python2 clang-devel clang-libs clang-tools-extra`
+* `sudo dnf install python2 clang-devel clang-libs clang-tools-extra && pip install --user clang`
 
 In `Debian`-based distributions, one may install the dependencies by running:
-* `sudo apt-get install python2.7 libclang-dev clang-tidy clang-format`
+* `sudo apt-get install python2.7 libclang-dev clang-tidy clang-format && pip install --user clang`
 
 # API
 
@@ -118,101 +118,64 @@ So, integration tests have all of the important bits which depict the usage of a
 
 ## Public API
 
-### General `cxxd` server startup/shutdown API**
+### General `cxxd` server startup/shutdown API
 
-`server_start(get_server_instance, get_server_instance_args, log_file)`
-> return value: `handle`
-
-`server_stop(handle, *payload)`
-> return value: `status`, `payload`
-
-`server_start_all_services(handle, *payload)`
-> return value: `status`, `payload`
-
-`server_stop_all_services(handle, *payload)`
-> return value: `status`, `payload`
+| API | Return Value |
+| ------------- |:-------------:|
+| `server_start(get_server_instance, get_server_instance_args, log_file)` | `handle` |
+| `server_stop(handle, *payload)`| `status`, `payload` |
+| `server_start_all_services(handle, *payload)` | `status`, `payload` |
+| `server_stop_all_services(handle, *payload)` | `status`, `payload` |
 
 ----------------------------
 
 ### Source code model API
 
-`source_code_model_start(handle, project_root_directory, compiler_args)`
-> return value: `status`, `payload`
-
-`source_code_model_stop(handle, subscribe_for_callback)`
-> return value: `status`, `payload`
-
-`source_code_model_semantic_syntax_highlight_request(handle, filename, contents)`
-> return value: `status`, [`translation_unit_ast`, `ast_visitor_function`]
-
-`source_code_model_diagnostics_request(handle, filename, contents)`
-> return value: `status`, [`diagnostics_iterator`, `diagnostics_visitor_function`, `fixit_visitor_function`]
-
-`source_code_model_type_deduction_request(handle, filename, contents, line, col)`
-> return value: `status`, `type_spelling`
-
-`source_code_model_go_to_definition_request(handle, filename, contents, line, col)`
-> return value: `status`, [`definition_filename`, `definition_line`, `definition_column`]
-
-`source_code_model_go_to_include_request(handle, filename, contents, line)`
-> return value: `status`, `include_header_filename`
-
-`source_code_model_indexer_run_on_single_file_request(handle, filename, contents)`
-> return value: `status`, `None`
-
-`source_code_model_indexer_run_on_directory_request(handle)`
-> return value: `status`, `None`
-
-`source_code_model_indexer_drop_single_file_request(handle, filename)`
-> return value: `status`, `None`
-
-`source_code_model_indexer_drop_all_request(handle, remove_db_from_disk)`
-> return value: `status`, `None`
-
-`source_code_model_indexer_drop_all_and_run_on_directory_request(handle)`
-> return value: `status`, `None`
-
-`source_code_model_indexer_find_all_references_request(handle, filename, line, col)`
-> return value: `status`, list_of_references(`filename`, `line`, `column`, `context`)
+| API | Return Value |
+| ------------- |:-------------:|
+| `source_code_model_start(handle, project_root_directory, compiler_args)` | `status`, `payload` |
+| `source_code_model_stop(handle, subscribe_for_callback)` | `status`, `payload` |
+| `source_code_model_semantic_syntax_highlight_request(handle, filename, contents)` | `status`, [`translation_unit_ast`, `ast_visitor_function`] |
+| `source_code_model_diagnostics_request(handle, filename, contents)` | `status`, [`diagnostics_iterator`, `diagnostics_visitor_function`, `fixit_visitor_function`] |
+| `source_code_model_type_deduction_request(handle, filename, contents, line, col)` | `status`, `type_spelling` |
+| `source_code_model_go_to_definition_request(handle, filename, contents, line, col)` | `status`, [`definition_filename`, `definition_line`, `definition_column`] |
+| `source_code_model_go_to_include_request(handle, filename, contents, line)` | `status`, `include_header_filename` |
+| `source_code_model_indexer_run_on_single_file_request(handle, filename, contents)` | `status`, `None` |
+| `source_code_model_indexer_run_on_directory_request(handle)` | `status`, `None` |
+| `source_code_model_indexer_drop_single_file_request(handle, filename)` | `status`, `None` |
+| `source_code_model_indexer_drop_all_request(handle, remove_db_from_disk)` | `status`, `None` |
+| `source_code_model_indexer_drop_all_and_run_on_directory_request(handle)` | `status`, `None` |
+| `source_code_model_indexer_find_all_references_request(handle, filename, line, col)` | `status`, list_of_references(`filename`, `line`, `column`, `context`) |
 
 ----------------------------
 
 ### Project Builder API
 
-`project_builder_start(handle, project_root_directory)`
-> return value: `status`, `payload`
-
-`project_builder_stop(handle, subscribe_for_callback)`
-> return value: `status`, `payload`
-
-`project_builder_request(handle, build_command)`
-> return value: `status`, [`build_cmd_output_filename`, `build_exit_code`, `duration`]
+| API | Return Value |
+| ------------- |:-------------:|
+| `project_builder_start(handle, project_root_directory)` | `status`, `payload` |
+| `project_builder_stop(handle, subscribe_for_callback)` | `status`, `payload` |
+| `project_builder_request(handle, build_command)` | `status`, [`build_cmd_output_filename`, `build_exit_code`, `duration`] |
 
 ----------------------------
 
 ### Clang-format API
 
-`clang_format_start(handle, config_file)`
-> return value: `status`, `payload`
-
-`clang_format_stop(handle, subscribe_for_callback)`
-> return value: `status`, `payload`
-
-`clang_format_request(handle, filename)`
-> return value: `status`, `None`
+| API | Return Value |
+| ------------- |:-------------:|
+| `clang_format_start(handle, config_file)` | `status`, `payload` |
+| `clang_format_stop(handle, subscribe_for_callback)` | `status`, `payload` |
+| `clang_format_request(handle, filename)` | `status`, `None` |
 
 ----------------------------
 
 ### Clang-tidy API
 
-`clang_tidy_start(handle, json_compilation_database)`
-> return value: `status`, `payload`
-
-`clang_tidy_stop(handle, subscribe_for_callback)`
-> return value: `status`, `payload`
-
-`clang_tidy_request(handle, filename, apply_fixes)`
-> return value: `status`, `clang_tidy_output_filename`
+| API | Return Value |
+| ------------- |:-------------:|
+| `clang_tidy_start(handle, json_compilation_database)` | `status`, `payload` |
+| `clang_tidy_stop(handle, subscribe_for_callback)` | `status`, `payload` |
+| `clang_tidy_request(handle, filename, apply_fixes)` | `status`, `clang_tidy_output_filename` |
 
 # Screenshots
 
