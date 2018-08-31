@@ -141,6 +141,10 @@ def get_system_includes():
 
 def extract_system_includes_from(compiler_name, pattern = ["\\n#include <...> search starts here:\\n", "\\nEnd of search list.\\n"]):
     import subprocess
+    import distutils.spawn
+    if not distutils.spawn.find_executable(compiler_name):
+        logging.warning('\'{0}\' not available on this system. System include paths may not be set fully which will probably result in parsing issues.'.format(compiler_name))
+        return []
     output = subprocess.Popen([compiler_name, "-v", "-E", "-x", "c++", "-"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
     output = str(output)
     return output[output.find(pattern[0]) + len(pattern[0]) : output.find(pattern[1])].replace(' ', '-I').split('\\n')
