@@ -131,8 +131,16 @@ class CompilerArgs():
         return os.path.basename(compiler_args_filename) == 'compile_flags.txt'
 
 def get_system_includes():
+    import os.path
+    gcc_includes = extract_system_includes_from('g++')
+    clang_includes = extract_system_includes_from('clang++')
+    gcc_normalized_includes = [os.path.normpath(include) for include in gcc_includes]
+    clang_normalized_includes = [os.path.normpath(include) for include in clang_includes]
+    merged_includes = set(gcc_normalized_includes + clang_normalized_includes)
+    return list(merged_includes)
+
+def extract_system_includes_from(compiler_name, pattern = ["\\n#include <...> search starts here:\\n", "\\nEnd of search list.\\n"]):
     import subprocess
-    output = subprocess.Popen(["g++", "-v", "-E", "-x", "c++", "-"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
-    pattern = ["#include <...> search starts here:", "End of search list."]
+    output = subprocess.Popen([compiler_name, "-v", "-E", "-x", "c++", "-"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
     output = str(output)
     return output[output.find(pattern[0]) + len(pattern[0]) : output.find(pattern[1])].replace(' ', '-I').split('\\n')
