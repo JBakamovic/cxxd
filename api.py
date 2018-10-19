@@ -118,6 +118,9 @@ def source_code_model_indexer_drop_all_and_run_on_directory_request(handle):
 def source_code_model_indexer_find_all_references_request(handle, filename, line, col):
     _indexer_request(handle, SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, filename, line, col)
 
+def source_code_model_indexer_fetch_all_diagnostics_request(handle, sorting_strategy):
+    _indexer_request(handle, SourceCodeModelIndexerRequestId.FETCH_ALL_DIAGNOSTICS, sorting_strategy)
+
 #
 # Project builder service API
 #

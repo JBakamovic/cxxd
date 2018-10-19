@@ -129,6 +129,13 @@ class CxxdIntegrationTest(unittest.TestCase):
         self.assertTrue(self.source_code_model_cb_result['indexer'].status)
         self.assertNotEqual(self.source_code_model_cb_result['indexer'].num_of_references, 0)
 
+    def test_source_code_model_indexer_fetch_all_diagnostics_request(self):
+        sorting_strategy = 0 # No sorting
+        cxxd.api.source_code_model_indexer_fetch_all_diagnostics_request(self.handle, sorting_strategy)
+        self.source_code_model_cb_result.wait_until_available()
+        self.assertTrue(self.source_code_model_cb_result['indexer'].status)
+        self.assertNotEqual(self.source_code_model_cb_result['indexer'].num_of_diagnostics, 0)
+
     def test_source_code_model_go_to_definition_request(self):
         cxxd.api.source_code_model_go_to_definition_request(self.handle, self.fut, self.fut, 52, 73)
         self.source_code_model_cb_result.wait_until_available()

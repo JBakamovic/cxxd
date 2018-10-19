@@ -137,6 +137,7 @@ class IndexerCallbackResult():
     def __init__(self):
         self.indexer_status = multiprocessing.Value(ctypes.c_bool, False)
         self.indexer_num_of_references = multiprocessing.Value(ctypes.c_int, 0)
+        self.indexer_num_of_diagnostics = multiprocessing.Value(ctypes.c_int, 0)
 
     def set(self, success, indexer_action_id, args):
         from cxxd.services.source_code_model.indexer.clang_indexer import SourceCodeModelIndexerRequestId
@@ -151,10 +152,13 @@ class IndexerCallbackResult():
             pass # Nothing to be checked upon
         elif indexer_action_id == SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES:
             self.indexer_num_of_references.value = len(args)
+        elif indexer_action_id == SourceCodeModelIndexerRequestId.FETCH_ALL_DIAGNOSTICS:
+            self.indexer_num_of_diagnostics.value = len(args)
 
     def reset(self):
         self.indexer_status.value = False
         self.indexer_num_of_references.value = 0
+        self.indexer_num_of_diagnostics.value = 0
 
     @property
     def status(self):
@@ -163,6 +167,10 @@ class IndexerCallbackResult():
     @property
     def num_of_references(self):
         return self.indexer_num_of_references.value
+
+    @property
+    def num_of_diagnostics(self):
+        return self.indexer_num_of_diagnostics.value
 
 class SourceCodeModelCallbackResult():
     def __init__(self):

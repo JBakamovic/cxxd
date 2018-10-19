@@ -18,6 +18,7 @@ from services.source_code_model.indexer.clang_indexer import get_cpp_file_list
 from services.source_code_model.indexer.clang_indexer import index_file_list
 from services.source_code_model.indexer.clang_indexer import index_single_file
 from services.source_code_model.indexer.clang_indexer import indexer_visitor
+from services.source_code_model.indexer.clang_indexer import store_tunit_diagnostics
 from services.source_code_model.indexer.clang_indexer import remove_root_dir_from_filename
 from services.source_code_model.indexer.clang_indexer import start_indexing_subprocess
 from services.source_code_model.indexer.symbol_database import SymbolDatabase
@@ -96,7 +97,7 @@ class ClangIndexerTest(unittest.TestCase):
         manager = mock.MagicMock()
         with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
             with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                with mock.patch.object(self.service.symbol_db, 'delete') as mock_symbol_db_delete_entry:
+                with mock.patch.object(self.service.symbol_db, 'delete_entry') as mock_symbol_db_delete_entry:
                     with mock.patch('services.source_code_model.indexer.clang_indexer.remove_root_dir_from_filename', return_value=os.path.basename(self.test_file.name)) as mock_remove_root_dir_from_filename:
                         with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file', return_value=True) as mock_index_single_file:
                             manager.attach_mock(mock_symbol_db_open, 'mock_symbol_db_open')
@@ -119,7 +120,7 @@ class ClangIndexerTest(unittest.TestCase):
         manager = mock.MagicMock()
         with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
             with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                with mock.patch.object(self.service.symbol_db, 'delete') as mock_symbol_db_delete_entry:
+                with mock.patch.object(self.service.symbol_db, 'delete_entry') as mock_symbol_db_delete_entry:
                     with mock.patch('services.source_code_model.indexer.clang_indexer.remove_root_dir_from_filename', return_value=os.path.basename(self.test_file.name)) as mock_remove_root_dir_from_filename:
                         with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file', return_value=False) as mock_index_single_file:
                             manager.attach_mock(mock_symbol_db_open, 'mock_symbol_db_open')
@@ -138,11 +139,30 @@ class ClangIndexerTest(unittest.TestCase):
         self.assertEqual(success, False)
         self.assertEqual(args, None)
 
-    def test_if_run_on_directory_skips_indexing_if_symbol_db_already_exists_in_root_directory(self):
-        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
-            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                with mock.patch.object(self.service.symbol_db, 'create_data_model') as mock_symbol_db_create_data_model:
+    def test_if_run_on_directory_checks_for_symbol_db_schema_change(self):
+        with mock.patch.object(self.service, 'symbol_db_schema_changed', return_value=False) as mock_symbol_db_schema_changed:
+            with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+                success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY])
+        mock_symbol_db_schema_changed.assert_called_once()
+        self.assertEqual(success, True)
+        self.assertEqual(args, None)
+
+    def test_if_run_on_directory_drops_the_db_when_symbol_db_schema_gets_changed(self):
+        with mock.patch.object(self.service, 'symbol_db_schema_changed', return_value=True) as mock_symbol_db_schema_changed:
+            with mock.patch.object(self.service, '_ClangIndexer__drop_all') as mock_drop_all:
+                with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
                     success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY])
+        mock_symbol_db_schema_changed.assert_called_once()
+        mock_drop_all.assert_called_once()
+        self.assertEqual(success, True)
+        self.assertEqual(args, None)
+
+    def test_if_run_on_directory_skips_indexing_if_symbol_db_already_exists_in_root_directory(self):
+        with mock.patch.object(self.service, 'symbol_db_schema_changed', return_value=False) as mock_symbol_db_schema_changed:
+            with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+                with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                    with mock.patch.object(self.service.symbol_db, 'create_data_model') as mock_symbol_db_create_data_model:
+                        success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY])
         mock_symbol_db_open.assert_not_called()
         mock_symbol_db_create_data_model.assert_not_called()
         self.assertEqual(success, True)
@@ -175,7 +195,7 @@ class ClangIndexerTest(unittest.TestCase):
                             mock.patch('services.source_code_model.indexer.clang_indexer.create_empty_symbol_db', return_value=(None, 'empty_symbol_db_filename',)) as mock_create_empty_symbol_db, \
                             mock.patch('services.source_code_model.indexer.clang_indexer.start_indexing_subprocess', return_value=subprocess.Popen(dummy_cmd)) as mock_start_indexing_subprocess, \
                             mock.patch('subprocess.Popen.wait') as mock_subprocess_wait, \
-                            mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.insert_from') as mock_symbol_db_insert_from, \
+                            mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.copy_all_entries_from') as mock_symbol_db_copy_all_entries_from, \
                             mock.patch('os.remove') as mock_os_remove:
                             success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY])
         mock_symbol_db_open.assert_called_once_with(self.service.symbol_db_path)
@@ -185,7 +205,7 @@ class ClangIndexerTest(unittest.TestCase):
         mock_create_indexer_input_list_file.assert_called_with(self.service.root_directory, mock.ANY, mock_slice_it.return_value[len(cpp_file_list_chunks)-1])
         mock_create_empty_symbol_db.assert_called_with(self.service.root_directory, self.service.symbol_db_name)
         mock_start_indexing_subprocess.assert_called_with(self.service.root_directory, self.txt_compilation_database.name, mock_create_indexer_input_list_file.return_value[1], mock_create_empty_symbol_db.return_value[1], mock.ANY)
-        mock_symbol_db_insert_from.assert_called_once()
+        mock_symbol_db_copy_all_entries_from.assert_called_once()
         self.assertEqual(mock_create_indexer_input_list_file.call_count, len(cpp_file_list_chunks))
         self.assertEqual(mock_create_empty_symbol_db.call_count, len(cpp_file_list_chunks))
         self.assertEqual(mock_start_indexing_subprocess.call_count, len(cpp_file_list_chunks))
@@ -197,11 +217,11 @@ class ClangIndexerTest(unittest.TestCase):
     def test_if_drop_single_file_skips_deleting_an_entry_if_symbol_db_is_inexisting(self):
         with mock.patch.object(self.service, 'symbol_db_exists', return_value=False):
             with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                with mock.patch.object(self.service.symbol_db, 'delete') as mock_symbol_db_delete:
+                with mock.patch.object(self.service.symbol_db, 'delete_entry') as mock_symbol_db_delete_entry:
                     with mock.patch('services.source_code_model.indexer.clang_indexer.remove_root_dir_from_filename', return_value=os.path.basename(self.test_file.name)) as mock_remove_root_dir_from_filename:
                         success, args = self.service([SourceCodeModelIndexerRequestId.DROP_SINGLE_FILE, self.test_file.name])
         mock_symbol_db_open.assert_not_called()
-        mock_symbol_db_delete.assert_not_called()
+        mock_symbol_db_delete_entry.assert_not_called()
         mock_remove_root_dir_from_filename.assert_not_called()
         self.assertEqual(success, False)
         self.assertEqual(args, None)
@@ -209,11 +229,11 @@ class ClangIndexerTest(unittest.TestCase):
     def test_if_drop_single_file_deletes_an_entry_from_symbol_db(self):
         with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
             with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                with mock.patch.object(self.service.symbol_db, 'delete') as mock_symbol_db_delete:
+                with mock.patch.object(self.service.symbol_db, 'delete_entry') as mock_symbol_db_delete_entry:
                     with mock.patch('services.source_code_model.indexer.clang_indexer.remove_root_dir_from_filename', return_value=os.path.basename(self.test_file.name)) as mock_remove_root_dir_from_filename:
                         success, args = self.service([SourceCodeModelIndexerRequestId.DROP_SINGLE_FILE, self.test_file.name])
         mock_symbol_db_open.assert_called_with(self.service.symbol_db_path)
-        mock_symbol_db_delete.assert_called_once_with(mock_remove_root_dir_from_filename.return_value)
+        mock_symbol_db_delete_entry.assert_called_once_with(mock_remove_root_dir_from_filename.return_value)
         mock_remove_root_dir_from_filename.assert_called_once_with(self.root_directory, self.test_file.name)
         self.assertEqual(success, True)
         self.assertEqual(args, None)
@@ -222,10 +242,10 @@ class ClangIndexerTest(unittest.TestCase):
         delete_from_disk = False
         with mock.patch.object(self.service, 'symbol_db_exists', return_value=False):
             with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                with mock.patch.object(self.service.symbol_db, 'delete_all') as mock_symbol_db_delete_all:
+                with mock.patch.object(self.service.symbol_db, 'delete_all_entries') as mock_symbol_db_delete_all_entries:
                     success, args = self.service([SourceCodeModelIndexerRequestId.DROP_ALL, delete_from_disk])
         mock_symbol_db_open.assert_not_called()
-        mock_symbol_db_delete_all.assert_not_called()
+        mock_symbol_db_delete_all_entries.assert_not_called()
         self.assertEqual(success, False)
         self.assertEqual(args, None)
 
@@ -233,27 +253,27 @@ class ClangIndexerTest(unittest.TestCase):
         delete_from_disk = False
         with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
             with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                with mock.patch.object(self.service.symbol_db, 'delete_all') as mock_symbol_db_delete_all:
+                with mock.patch.object(self.service.symbol_db, 'delete_all_entries') as mock_symbol_db_delete_all_entries:
                     with mock.patch.object(self.service.symbol_db, 'close') as mock_symbol_db_close:
                         with mock.patch('os.remove') as mock_os_remove:
                             success, args = self.service([SourceCodeModelIndexerRequestId.DROP_ALL, delete_from_disk])
         mock_symbol_db_open.assert_called_with(self.service.symbol_db_path)
-        mock_symbol_db_delete_all.assert_called_once()
+        mock_symbol_db_delete_all_entries.assert_called_once()
         mock_symbol_db_close.assert_not_called()
         mock_os_remove.assert_not_called()
         self.assertEqual(success, True)
         self.assertEqual(args, None)
 
-    def test_if_drop_all_deletes_all_entries_from_symbol_db_and_deletes_the_db_from_disk(self):
+    def test_if_drop_all_does_not_delete_all_entries_from_symbol_db_but_deletes_the_db_from_disk(self):
         delete_from_disk = True
         with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
             with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                with mock.patch.object(self.service.symbol_db, 'delete_all') as mock_symbol_db_delete_all:
+                with mock.patch.object(self.service.symbol_db, 'delete_all_entries') as mock_symbol_db_delete_all_entries:
                     with mock.patch.object(self.service.symbol_db, 'close') as mock_symbol_db_close:
                         with mock.patch('os.remove') as mock_os_remove:
                             success, args = self.service([SourceCodeModelIndexerRequestId.DROP_ALL, delete_from_disk])
-        mock_symbol_db_open.assert_called_with(self.service.symbol_db_path)
-        mock_symbol_db_delete_all.assert_called_once()
+        mock_symbol_db_open.assert_not_called()
+        mock_symbol_db_delete_all_entries.assert_not_called()
         mock_symbol_db_close.assert_called_once()
         mock_os_remove.assert_called_once_with(self.service.symbol_db.filename)
         self.assertEqual(success, True)
@@ -297,12 +317,12 @@ class ClangIndexerTest(unittest.TestCase):
             with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
                 with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
                     with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                        with mock.patch.object(self.service.symbol_db, 'get_by_usr', return_value=rows) as mock_symbol_db_get_by_usr:
+                        with mock.patch.object(self.service.symbol_db, 'fetch_symbols_by_usr', return_value=rows) as mock_symbol_db_fetch_symbols_by_usr:
                             success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_get_cursor.assert_called_once_with(mock_parser_parse.return_value, line, column)
         mock_symbol_db_open.assert_called_with(self.service.symbol_db_path)
-        mock_symbol_db_get_by_usr.assert_called_once()
+        mock_symbol_db_fetch_symbols_by_usr.assert_called_once()
         self.assertEqual(success, True)
         self.assertEqual(len(references), 0)
 
@@ -313,12 +333,12 @@ class ClangIndexerTest(unittest.TestCase):
             with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
                 with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
                     with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                        with mock.patch.object(self.service.symbol_db, 'get_by_usr', return_value=rows) as mock_symbol_db_get_by_usr:
+                        with mock.patch.object(self.service.symbol_db, 'fetch_symbols_by_usr', return_value=rows) as mock_symbol_db_fetch_symbols_by_usr:
                             success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_get_cursor.assert_called_once_with(mock_parser_parse.return_value, line, column)
         mock_symbol_db_open.assert_called_with(self.service.symbol_db_path)
-        mock_symbol_db_get_by_usr.assert_called_once()
+        mock_symbol_db_fetch_symbols_by_usr.assert_called_once()
         self.assertEqual(success, True)
         self.assertNotEqual(len(references), 0)
 
@@ -329,16 +349,79 @@ class ClangIndexerTest(unittest.TestCase):
             with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
                 with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
                     with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                        with mock.patch.object(self.service.symbol_db, 'get_by_usr', return_value=rows) as mock_symbol_db_get_by_usr:
+                        with mock.patch.object(self.service.symbol_db, 'fetch_symbols_by_usr', return_value=rows) as mock_symbol_db_fetch_symbols_by_usr:
                             success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_get_cursor.assert_called_once_with(mock_parser_parse.return_value, line, column)
         mock_symbol_db_open.assert_called_with(self.service.symbol_db_path)
-        mock_symbol_db_get_by_usr.assert_called_once()
+        mock_symbol_db_fetch_symbols_by_usr.assert_called_once()
         self.assertEqual(success, True)
         self.assertNotEqual(len(references), 0)
         filename = references[0][0]
         self.assertEqual(filename.startswith(self.root_directory), True)
+
+    def test_if_fetch_all_diagnostics_returns_false_and_empty_diagnostics_list_on_inexisting_symbol_db(self):
+        sorting_strategy = 0 # No sorting
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=False):
+            success, diagnostics = self.service([SourceCodeModelIndexerRequestId.FETCH_ALL_DIAGNOSTICS, sorting_strategy])
+        self.assertEqual(success, False)
+        self.assertEqual(len(diagnostics), 0)
+
+    def test_if_fetch_all_diagnostics_returns_true_and_empty_diagnostics_list_when_no_diagnostics_are_available_and_does_not_fetch_additional_diagnostics_details(self):
+        sorting_strategy = 0 # No sorting
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                with mock.patch.object(self.service.symbol_db, 'fetch_all_diagnostics', return_value=[]) as mock_symbol_db_fetch_all_diagnostics:
+                    with mock.patch.object(self.service.symbol_db, 'fetch_diagnostics_details', return_value=[]) as mock_symbol_db_fetch_all_diagnostics_details:
+                        success, diagnostics = self.service([SourceCodeModelIndexerRequestId.FETCH_ALL_DIAGNOSTICS, sorting_strategy])
+        mock_symbol_db_open.assert_called_once()
+        mock_symbol_db_fetch_all_diagnostics.assert_called_once()
+        mock_symbol_db_fetch_all_diagnostics_details.assert_not_called()
+        self.assertEqual(success, True)
+        self.assertEqual(len(diagnostics), 0)
+
+    def test_if_fetch_all_diagnostics_returns_true_and_non_empty_diagnostics_list_and_does_not_fetch_additional_diagnostics_details_because_there_are_no_any(self):
+        sorting_strategy = 0 # No sorting
+        diagnostics_from_db = [
+            [1, 'filename1', 1, 1, 'diag description 1', 1],
+            [2, 'filename2', 2, 2, 'diag description 2', 2],
+            [3, 'filename3', 3, 3, 'diag description 3', 2],
+            [4, 'filename4', 4, 4, 'diag description 4', 3],
+            [5, 'filename5', 5, 5, 'diag description 5', 3],
+            [6, 'filename6', 6, 6, 'diag description 6', 4],
+        ]
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                with mock.patch.object(self.service.symbol_db, 'fetch_all_diagnostics', return_value=diagnostics_from_db) as mock_symbol_db_fetch_all_diagnostics:
+                    with mock.patch.object(self.service.symbol_db, 'fetch_diagnostics_details', return_value=[]) as mock_symbol_db_fetch_all_diagnostics_details:
+                        success, diagnostics = self.service([SourceCodeModelIndexerRequestId.FETCH_ALL_DIAGNOSTICS, sorting_strategy])
+        mock_symbol_db_open.assert_called_once()
+        mock_symbol_db_fetch_all_diagnostics.assert_called_once()
+        mock_symbol_db_fetch_all_diagnostics_details.assert_not_called()
+        self.assertEqual(success, True)
+        self.assertEqual(len(diagnostics), len(diagnostics_from_db))
+
+    def test_if_fetch_all_diagnostics_returns_true_and_non_empty_diagnostics_list_and_does_not_fetch_additional_diagnostics_details_because_there_are_no_any(self):
+        sorting_strategy = 0 # No sorting
+        diagnostics_from_db = [
+            [1, 'filename1', 1, 1, 'diag description 1', 1],
+            [2, 'filename2', 2, 2, 'diag description 2', 2],
+            [3, 'filename3', 3, 3, 'diag description 3', 2],
+            [4, 'filename4', 4, 4, 'diag description 4', 3],
+            [5, 'filename5', 5, 5, 'diag description 5', 3],
+            [6, 'filename6', 6, 6, 'diag description 6', 4],
+        ]
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                with mock.patch.object(self.service.symbol_db, 'fetch_all_diagnostics', return_value=diagnostics_from_db) as mock_symbol_db_fetch_all_diagnostics:
+                    with mock.patch.object(self.service.symbol_db, 'fetch_diagnostics_details', return_value=diagnostics_from_db) as mock_symbol_db_fetch_all_diagnostics_details:
+                        success, diagnostics = self.service([SourceCodeModelIndexerRequestId.FETCH_ALL_DIAGNOSTICS, sorting_strategy])
+        mock_symbol_db_open.assert_called_once()
+        mock_symbol_db_fetch_all_diagnostics.assert_called_once()
+        mock_symbol_db_fetch_all_diagnostics_details.assert_called()
+        self.assertEqual(mock_symbol_db_fetch_all_diagnostics_details.call_count, len(diagnostics_from_db))
+        self.assertEqual(success, True)
+        self.assertEqual(len(diagnostics), len(diagnostics_from_db) + len(diagnostics_from_db)**2)
 
     def test_if_index_file_list_runs_indexing_for_each_of_the_files_given(self):
         input_filename_list = ['/tmp/a.cpp', '/tmp/b.cpp', '/tmp/c.cpp', '/tmp/d.cpp', '/tmp/e.cpp', '/tmp/f.cpp', '/tmp/g.cpp']
@@ -392,25 +475,29 @@ class ClangIndexerTest(unittest.TestCase):
         )
         mock_symbol_db_close.assert_called_once()
 
-    def test_if_index_single_file_returns_true_and_traverses_and_flushes_the_symbol_db(self):
+    def test_if_index_single_file_returns_true_traverses_the_ast_tree_stores_tunit_diagnostics_and_flushes_the_symbol_db(self):
         symbol_db = SymbolDatabase('tmp.db')
         with mock.patch.object(self.parser, 'parse') as mock_parser_parse:
             with mock.patch.object(self.parser, 'traverse') as mock_parser_traverse:
-                with mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.flush') as mock_symbol_db_flush:
-                    ret = index_single_file(self.parser, os.path.dirname(self.test_file.name), self.test_file.name, self.test_file.name, symbol_db)
+                with mock.patch('services.source_code_model.indexer.clang_indexer.store_tunit_diagnostics') as mock_store_tunit_diagnostics:
+                    with mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.flush') as mock_symbol_db_flush:
+                        ret = index_single_file(self.parser, os.path.dirname(self.test_file.name), self.test_file.name, self.test_file.name, symbol_db)
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_traverse.assert_called_once_with(mock_parser_parse.return_value.cursor, [self.parser, symbol_db, self.root_directory], indexer_visitor)
+        mock_store_tunit_diagnostics.assert_called_once_with(mock_parser_parse.return_value.diagnostics, symbol_db, self.root_directory)
         mock_symbol_db_flush.assert_called_once()
         self.assertEqual(ret, True)
 
-    def test_if_index_single_file_returns_false_and_does_not_continue_traversing_for_invalid_tunit(self):
+    def test_if_index_single_file_returns_false_and_does_not_continue_traversing_or_storing_tunit_diagnostics_for_invalid_tunit(self):
         symbol_db = SymbolDatabase('tmp.db')
         with mock.patch.object(self.parser, 'parse', return_value=None) as mock_parser_parse:
             with mock.patch.object(self.parser, 'traverse') as mock_parser_traverse:
-                with mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.flush') as mock_symbol_db_flush:
-                    ret = index_single_file(self.parser, os.path.dirname(self.test_file.name), self.test_file.name, self.test_file.name, symbol_db)
+                with mock.patch('services.source_code_model.indexer.clang_indexer.store_tunit_diagnostics') as mock_store_tunit_diagnostics:
+                    with mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.flush') as mock_symbol_db_flush:
+                        ret = index_single_file(self.parser, os.path.dirname(self.test_file.name), self.test_file.name, self.test_file.name, symbol_db)
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_traverse.assert_not_called()
+        mock_store_tunit_diagnostics.assert_not_called()
         mock_symbol_db_flush.assert_not_called()
         self.assertEqual(ret, False)
 
@@ -427,14 +514,14 @@ class ClangIndexerTest(unittest.TestCase):
         symbol_db = SymbolDatabase('tmp.db')
         args = [self.parser, symbol_db, self.root_directory]
         with mock.patch.object(self.parser, 'get_ast_node_id', return_value=ClangIndexer.supported_ast_node_ids[0]):
-            with mock.patch.object(symbol_db, 'insert_single') as mock_symbol_db_insert_single:
+            with mock.patch.object(symbol_db, 'insert_symbol_entry') as mock_symbol_db_insert_symbol_entry:
                 with mock.patch.object(ast_node, 'get_usr', return_value='#usr#of#some#symbol') as mock_clang_cursor_get_usr:
                     with mock.patch.object(ast_node, 'is_definition', return_value=True) as mock_clang_cursor_is_definition:
                         with mock.patch('services.source_code_model.indexer.clang_indexer.remove_root_dir_from_filename', return_value=os.path.basename(self.test_file.name)) as mock_remove_root_dir_from_filename:
                             ret = indexer_visitor(ast_node, None, args)
         self.assertEqual(ret, parser.clang_parser.ChildVisitResult.RECURSE.value)
         mock_remove_root_dir_from_filename.assert_called_once_with(self.root_directory, translation_unit_mock.spelling)
-        mock_symbol_db_insert_single.assert_called_once_with(
+        mock_symbol_db_insert_symbol_entry.assert_called_once_with(
             mock_remove_root_dir_from_filename.return_value,
             line, column,
             mock_clang_cursor_get_usr.return_value,
@@ -453,11 +540,11 @@ class ClangIndexerTest(unittest.TestCase):
         symbol_db = SymbolDatabase('tmp.db')
         args = [self.parser, symbol_db, self.root_directory]
         with mock.patch.object(self.parser, 'get_ast_node_id', return_value=self.unsupported_ast_node_ids[0]) as mock_get_ast_node_id:
-            with mock.patch.object(symbol_db, 'insert_single') as mock_symbol_db_insert_single:
+            with mock.patch.object(symbol_db, 'insert_symbol_entry') as mock_symbol_db_insert_symbol_entry:
                 ret = indexer_visitor(ast_node, None, args)
         self.assertEqual(ret, parser.clang_parser.ChildVisitResult.RECURSE.value)
         mock_get_ast_node_id.assert_called_once()
-        mock_symbol_db_insert_single.assert_not_called()
+        mock_symbol_db_insert_symbol_entry.assert_not_called()
 
     def test_if_indexer_visitor_does_not_insert_an_entry_to_symbol_db_for_ast_node_from_another_tunit_and_does_not_recurse_further(self):
         line, column = 10, 15
@@ -468,10 +555,65 @@ class ClangIndexerTest(unittest.TestCase):
         type(ast_node).translation_unit = translation_unit_mock
         symbol_db = SymbolDatabase('tmp.db')
         args = [self.parser, symbol_db, self.root_directory]
-        with mock.patch.object(symbol_db, 'insert_single') as mock_symbol_db_insert_single:
+        with mock.patch.object(symbol_db, 'insert_symbol_entry') as mock_symbol_db_insert_symbol_entry:
             ret = indexer_visitor(ast_node, None, args)
         self.assertEqual(ret, parser.clang_parser.ChildVisitResult.CONTINUE.value)
-        mock_symbol_db_insert_single.assert_not_called()
+        mock_symbol_db_insert_symbol_entry.assert_not_called()
+
+    def test_if_store_tunit_diagnostics_creates_diagnostics_entry_and_no_diagnostics_details_entry_in_symbol_db(self):
+        symbol_db = SymbolDatabase('tmp.db')
+        diagnostics = [
+            cxxd_mocks.DiagnosticMock(
+                cxxd_mocks.SourceLocationMock(self.test_file.name, 1, 1), 'missing ;', 4, []
+            ),
+            cxxd_mocks.DiagnosticMock(
+                cxxd_mocks.SourceLocationMock(self.test_file.name, 2, 2), 'include file not found', 4, []
+            ),
+            cxxd_mocks.DiagnosticMock(
+                cxxd_mocks.SourceLocationMock(self.test_file.name, 10, 10), 'implicit narrowing cast from int to short int', 3, []
+            ),
+        ]
+        translation_unit_mock = cxxd_mocks.TranslationUnitMock('some_tunit_with_diagnostics', diagnostics)
+        with mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.insert_diagnostics_entry') as mock_symbol_db_insert_diagnostics_entry:
+            with mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.insert_diagnostics_details_entry') as mock_symbol_db_insert_diagnostics_details_entry:
+                ret = store_tunit_diagnostics(translation_unit_mock.diagnostics, symbol_db, self.root_directory)
+        mock_symbol_db_insert_diagnostics_entry.assert_called()
+        self.assertEqual(mock_symbol_db_insert_diagnostics_entry.call_count, len(diagnostics))
+        mock_symbol_db_insert_diagnostics_details_entry.assert_not_called()
+
+    def test_if_store_tunit_diagnostics_creates_diagnostics_entry_and_diagnostics_details_entry_in_symbol_db(self):
+        symbol_db = SymbolDatabase('tmp.db')
+        diag_child_1 = cxxd_mocks.DiagnosticMock(
+            cxxd_mocks.SourceLocationMock('some_other_filename_1.cpp', 1, 5), 'missing ;', 4, []
+        )
+        diag_child_2 = cxxd_mocks.DiagnosticMock(
+            cxxd_mocks.SourceLocationMock('some_other_filename_2.cpp', 2, 2), 'include file not found', 4, []
+        )
+        diag_child_3 = cxxd_mocks.DiagnosticMock(
+            cxxd_mocks.SourceLocationMock('some_other_filename_3.cpp', 5, 4), 'implicit narrowing cast from int to short int', 3, []
+        )
+        diag_child_4 = cxxd_mocks.DiagnosticMock(
+            cxxd_mocks.SourceLocationMock('some_other_filename_4.cpp', 8, 2), 'implicit narrowing cast from int to short int', 3, []
+        )
+        diagnostics = [
+            cxxd_mocks.DiagnosticMock(
+                cxxd_mocks.SourceLocationMock(self.test_file.name, 1, 1), 'missing ;', 4, [diag_child_1, diag_child_2, diag_child_3, diag_child_4]
+            ),
+            cxxd_mocks.DiagnosticMock(
+                cxxd_mocks.SourceLocationMock(self.test_file.name, 2, 2), 'include not found', 5, [diag_child_2, diag_child_3]
+            ),
+            cxxd_mocks.DiagnosticMock(
+                cxxd_mocks.SourceLocationMock(self.test_file.name, 10, 10), 'implicit narrowing cast from int to short int', 3, [diag_child_1, diag_child_2, diag_child_3]
+            ),
+        ]
+        translation_unit_mock = cxxd_mocks.TranslationUnitMock('some_tunit_with_diagnostics', diagnostics)
+        with mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.insert_diagnostics_entry') as mock_symbol_db_insert_diagnostics_entry:
+            with mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.insert_diagnostics_details_entry') as mock_symbol_db_insert_diagnostics_details_entry:
+                ret = store_tunit_diagnostics(translation_unit_mock.diagnostics, symbol_db, self.root_directory)
+        mock_symbol_db_insert_diagnostics_entry.assert_called()
+        self.assertEqual(mock_symbol_db_insert_diagnostics_entry.call_count, len(diagnostics))
+        mock_symbol_db_insert_diagnostics_details_entry.assert_called()
+        self.assertEqual(mock_symbol_db_insert_diagnostics_details_entry.call_count, len(diagnostics[0].children + diagnostics[1].children + diagnostics[2].children))
 
     def test_if_remove_root_dir_from_filename_returns_basename_without_root_dir_and_without_path_separator(self):
         self.assertEqual(remove_root_dir_from_filename('/home/user/project_root_dir/', '/home/user/project_root_dir/lib/impl.cpp'), 'lib/impl.cpp')

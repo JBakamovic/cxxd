@@ -23,6 +23,7 @@ class SourceCodeModelIndexerRequestId():
     DROP_SINGLE_FILE          = 0x2
     DROP_ALL                  = 0x3
     FIND_ALL_REFERENCES       = 0x10
+    FETCH_ALL_DIAGNOSTICS     = 0x11
 
 class ClangIndexer(object):
     supported_ast_node_ids = [
@@ -40,11 +41,12 @@ class ClangIndexer(object):
         self.symbol_db              = SymbolDatabase(self.symbol_db_path) if self.symbol_db_exists() else SymbolDatabase()
         self.parser                 = parser
         self.op = {
-            SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE  : self.__run_on_single_file,
-            SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY    : self.__run_on_directory,
-            SourceCodeModelIndexerRequestId.DROP_SINGLE_FILE    : self.__drop_single_file,
-            SourceCodeModelIndexerRequestId.DROP_ALL            : self.__drop_all,
-            SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES : self.__find_all_references
+            SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE    : self.__run_on_single_file,
+            SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY      : self.__run_on_directory,
+            SourceCodeModelIndexerRequestId.DROP_SINGLE_FILE      : self.__drop_single_file,
+            SourceCodeModelIndexerRequestId.DROP_ALL              : self.__drop_all,
+            SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES   : self.__find_all_references,
+            SourceCodeModelIndexerRequestId.FETCH_ALL_DIAGNOSTICS : self.__fetch_all_diagnostics,
         }
 
     def symbol_db_exists(self):
@@ -52,6 +54,14 @@ class ClangIndexer(object):
 
     def get_symbol_db(self):
         return self.symbol_db
+
+    def symbol_db_schema_changed(self):
+        if self.symbol_db_exists():
+            self.symbol_db.open(self.symbol_db_path)
+            current_major_number, current_minor_number = self.symbol_db.fetch_schema_version()
+            if current_major_number != self.symbol_db.VERSION_MAJOR or current_minor_number != self.symbol_db.VERSION_MINOR:
+                return True
+        return False
 
     def __call__(self, args):
         return self.op.get(int(args[0]), self.__unknown_op)(int(args[0]), args[1:len(args)])
@@ -67,7 +77,7 @@ class ClangIndexer(object):
             contents_filename = str(args[1])
             if contents_filename == original_filename: # Files modified but not saved will _NOT_ get indexed
                 self.symbol_db.open(self.symbol_db_path)
-                self.symbol_db.delete(remove_root_dir_from_filename(self.root_directory, original_filename))
+                self.symbol_db.delete_entry(remove_root_dir_from_filename(self.root_directory, original_filename))
                 success = index_single_file(
                     self.parser,
                     self.root_directory,
@@ -75,7 +85,7 @@ class ClangIndexer(object):
                     original_filename,
                     self.symbol_db
                 )
-                # TODO what if index_single_file() fails? we should revert the symbol_db.delete() back
+                # TODO what if index_single_file() fails? we should revert the symbol_db.delete_entry() back
             else:
                 logging.warning('Indexing will not take place on existing files whose contents were modified but not saved.')
         else:
@@ -83,6 +93,10 @@ class ClangIndexer(object):
         return success, None
 
     def __run_on_directory(self, id, args):
+        if self.symbol_db_schema_changed():
+            logging.warning('Detected symbol database schema change! About to drop the current one and re-create a new one ...')
+            self.__drop_all(0, (True,))
+
         if not self.symbol_db_exists():
             logging.info("Starting to index whole directory '{0}' ... ".format(self.root_directory))
 
@@ -144,7 +158,7 @@ class ClangIndexer(object):
                 indexing_subprocess.wait()
 
             # Merge the results of indexing operations into the single symbol database
-            self.symbol_db.insert_from(symbol_db_list)
+            self.symbol_db.copy_all_entries_from(symbol_db_list)
 
             # Get rid of temporary symbol db's & indexer input list filenames
             for symbol_db, indexer_input in zip(symbol_db_list, indexer_input_list):
@@ -162,7 +176,7 @@ class ClangIndexer(object):
         if symbol_db_exists:
             filename = str(args[0])
             self.symbol_db.open(self.symbol_db_path)
-            self.symbol_db.delete(remove_root_dir_from_filename(self.root_directory, filename))
+            self.symbol_db.delete_entry(remove_root_dir_from_filename(self.root_directory, filename))
         else:
             logging.error('Action cannot be run if symbol database does not exist yet!')
         return symbol_db_exists, None
@@ -170,12 +184,13 @@ class ClangIndexer(object):
     def __drop_all(self, id, args):
         symbol_db_exists = self.symbol_db_exists()
         if symbol_db_exists:
-            self.symbol_db.open(self.symbol_db_path)
-            self.symbol_db.delete_all()
             delete_file_from_disk = bool(args[0])
             if delete_file_from_disk:
                 self.symbol_db.close()
                 os.remove(self.symbol_db.filename)
+            else:
+                self.symbol_db.open(self.symbol_db_path)
+                self.symbol_db.delete_all_entries()
             logging.info('Indexer DB dropped.')
         else:
             logging.error('Action cannot be run if symbol database does not exist yet!')
@@ -194,20 +209,47 @@ class ClangIndexer(object):
                 #      contrast contains an original filename).
                 usr = cursor.referenced.get_usr() if cursor.referenced else cursor.get_usr()
                 self.symbol_db.open(self.symbol_db_path)
-                for ref in self.symbol_db.get_by_usr(usr):
+                for ref in self.symbol_db.fetch_symbols_by_usr(usr):
                     references.append([
-                        os.path.join(self.root_directory, self.symbol_db.get_filename(ref)),
-                        self.symbol_db.get_line(ref),
-                        self.symbol_db.get_column(ref),
-                        self.symbol_db.get_context(ref)
+                        os.path.join(self.root_directory, self.symbol_db.get_symbol_filename(ref)),
+                        self.symbol_db.get_symbol_line(ref),
+                        self.symbol_db.get_symbol_column(ref),
+                        self.symbol_db.get_symbol_context(ref)
                     ])
                 logging.info("Find-all-references operation completed for '{0}', [{1}, {2}], '{3}'".format(
                     cursor.displayname, cursor.location.line, cursor.location.column, tunit.spelling)
                 )
-            logging.info("\n{0}".format('\n'.join(str(ref) for ref in references)))
+            logging.debug("\n{0}".format('\n'.join(str(ref) for ref in references)))
         else:
             logging.error('Action cannot be run if symbol database does not exist yet!')
         return tunit is not None and cursor is not None, references
+
+    def __fetch_all_diagnostics(self, id, args):
+        diagnostics = []
+        db_exists = self.symbol_db_exists()
+        if db_exists:
+            self.symbol_db.open(self.symbol_db_path)
+            for diag in self.symbol_db.fetch_all_diagnostics(int(args[0])):
+                diagnostics.append([
+                    os.path.join(self.root_directory, self.symbol_db.get_diagnostics_filename(diag)),
+                    self.symbol_db.get_diagnostics_line(diag),
+                    self.symbol_db.get_diagnostics_column(diag),
+                    self.symbol_db.get_diagnostics_description(diag),
+                    self.symbol_db.get_diagnostics_severity(diag)
+                ])
+                for detail in self.symbol_db.fetch_diagnostics_details(self.symbol_db.get_diagnostics_id(diag)):
+                    diagnostics.append([
+                        os.path.join(self.root_directory, self.symbol_db.get_diagnostics_details_filename(detail)),
+                        self.symbol_db.get_diagnostics_details_line(detail),
+                        self.symbol_db.get_diagnostics_details_column(detail),
+                        self.symbol_db.get_diagnostics_details_description(detail),
+                        self.symbol_db.get_diagnostics_details_severity(detail)
+                    ])
+            logging.debug("\n{0}".format('\n'.join(str(diag) for diag in diagnostics)))
+        else:
+            logging.error('Action cannot be run if symbol database does not exist yet!')
+        return db_exists, diagnostics
+
 
 def index_file_list(root_directory, input_filename_list, compiler_args_filename, output_db_filename):
     symbol_db = SymbolDatabase(output_db_filename)
@@ -225,19 +267,20 @@ def indexer_visitor(ast_node, ast_parent_node, args):
     parser, symbol_db, root_directory = args
     ast_node_location = ast_node.location
     ast_node_tunit_spelling = ast_node.translation_unit.spelling
-    if ast_node_location.file and ast_node_location.file.name == ast_node_tunit_spelling:  # we are not interested in symbols which got into this TU via includes
+    ast_node_referenced = ast_node.referenced
+    if ast_node_location and ast_node_location.file and ast_node_location.file.name == ast_node_tunit_spelling:  # we are not interested in symbols which got into this TU via includes
         id = parser.get_ast_node_id(ast_node)
-        usr = ast_node.referenced.get_usr() if ast_node.referenced else ast_node.get_usr()
+        usr = ast_node_referenced.get_usr() if ast_node_referenced else ast_node.get_usr()
         line = int(parser.get_ast_node_line(ast_node))
         column = int(parser.get_ast_node_column(ast_node))
         if id in ClangIndexer.supported_ast_node_ids:
-            symbol_db.insert_single(
+            symbol_db.insert_symbol_entry(
                 remove_root_dir_from_filename(root_directory, ast_node_tunit_spelling),
                 line,
                 column,
                 usr,
                 extract_cursor_context(ast_node_tunit_spelling, line),
-                ast_node.referenced._kind_id if ast_node.referenced else ast_node._kind_id,
+                ast_node_referenced._kind_id if ast_node_referenced else ast_node._kind_id,
                 ast_node.is_definition()
             )
         return ChildVisitResult.RECURSE.value  # If we are positioned in TU of interest, then we'll traverse through all descendants
@@ -248,9 +291,40 @@ def index_single_file(parser, root_directory, contents_filename, original_filena
     tunit = parser.parse(contents_filename, original_filename)
     if tunit:
         parser.traverse(tunit.cursor, [parser, symbol_db, root_directory], indexer_visitor)
+        store_tunit_diagnostics(tunit.diagnostics, symbol_db, root_directory)
         symbol_db.flush()
     logging.info("Indexing of {0} completed.".format(original_filename))
     return tunit is not None
+
+def store_tunit_diagnostics(diagnostics, symbol_db, root_directory):
+    for diag in diagnostics:
+        diagnostics_id = None
+        diag_location = diag.location
+        if diag_location:
+            diag_location_file = diag_location.file
+            if diag_location_file:
+                diagnostics_id = symbol_db.insert_diagnostics_entry(
+                    remove_root_dir_from_filename(root_directory, diag_location_file.name),
+                    diag_location.line,
+                    diag_location.column,
+                    diag.spelling,
+                    diag.severity
+                )
+                if diagnostics_id is not None:
+                    # Now do the same for children ...
+                    for child_diagnostics in diag.children:
+                        diag_location = child_diagnostics.location
+                        if diag_location:
+                            diag_location_file = diag_location.file
+                            if diag_location_file:
+                                symbol_db.insert_diagnostics_details_entry(
+                                    diagnostics_id,
+                                    remove_root_dir_from_filename(root_directory, diag_location_file.name),
+                                    diag_location.line,
+                                    diag_location.column,
+                                    child_diagnostics.spelling,
+                                    child_diagnostics.severity
+                                )
 
 def remove_root_dir_from_filename(root_dir, full_path):
     return full_path[len(root_dir):].lstrip(os.sep)
