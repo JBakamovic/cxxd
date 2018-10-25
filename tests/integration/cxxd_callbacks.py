@@ -172,6 +172,31 @@ class IndexerCallbackResult():
     def num_of_diagnostics(self):
         return self.indexer_num_of_diagnostics.value
 
+class AutoCompletionCallbackResult():
+    def __init__(self):
+        self.status = multiprocessing.Value(ctypes.c_bool, False)
+        self.num_of_code_complete_candidates = multiprocessing.Value(ctypes.c_int, 0)
+
+    def set(self, success, auto_completion_action_id, args):
+        from cxxd.services.source_code_model.auto_completion.auto_completion import SourceCodeModelAutoCompletionRequestId
+        self.status.value = success
+        if auto_completion_action_id == SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE:
+            self.num_of_code_complete_candidates.value = len(args)
+        else:
+            logging.error('Invalid auto-completion action id!')
+
+    def reset(self):
+        self.status.value = False
+        self.num_of_code_complete_candidates.value = 0
+
+    @property
+    def status(self):
+        return self.status.value
+
+    @property
+    def num_of_code_complete_candidates(self):
+        return self.num_of_code_complete_candidates.value
+
 class SourceCodeModelCallbackResult():
     def __init__(self):
         self.type = {
@@ -180,7 +205,8 @@ class SourceCodeModelCallbackResult():
             'go_to_include'      : GoToIncludeCallbackResult(),
             'semantic_syntax_hl' : SemanticSyntaxHighlightCallbackResult(),
             'diagnostics'        : DiagnosticsCallbackResult(),
-            'indexer'            : IndexerCallbackResult()
+            'indexer'            : IndexerCallbackResult(),
+            'auto_completion'    : AutoCompletionCallbackResult()
         }
         self.wait_on_completion = multiprocessing.Semaphore(0)
 
@@ -201,6 +227,8 @@ class SourceCodeModelCallbackResult():
             self.type['go_to_definition'].set(success, args)
         elif source_code_model_service_id == SourceCodeModelSubServiceId.GO_TO_INCLUDE:
             self.type['go_to_include'].set(success, args)
+        elif source_code_model_service_id == SourceCodeModelSubServiceId.AUTO_COMPLETION:
+            self.type['auto_completion'].set(success, int(payload[1]), args)
         else:
             logging.error('Invalid source code model service id!')
         self.wait_on_completion.release()
