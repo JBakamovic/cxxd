@@ -125,8 +125,8 @@ def source_code_model_indexer_find_all_references_request(handle, filename, line
 def source_code_model_indexer_fetch_all_diagnostics_request(handle, sorting_strategy):
     _indexer_request(handle, SourceCodeModelIndexerRequestId.FETCH_ALL_DIAGNOSTICS, sorting_strategy)
 
-def source_code_model_auto_completion_request(handle, filename, contents, line, col):
-    _source_code_model_request(handle, SourceCodeModelSubServiceId.AUTO_COMPLETION, filename, contents, line, col)
+def source_code_model_auto_completion_code_complete_request(handle, filename, contents, line, col, offset, sorting_strategy):
+    _auto_completion_request(handle, SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE, filename, contents, line, col, offset, sorting_strategy)
 
 #
 # Project builder service API
