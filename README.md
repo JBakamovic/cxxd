@@ -30,6 +30,7 @@ Find-all-references | :heavy_check_mark: | :heavy_check_mark:
 Go-to-definition | :heavy_check_mark: | :heavy_check_mark:
 Go-to-include | :heavy_check_mark: | :heavy_check_mark:
 Type-deduction | :heavy_check_mark: | :heavy_check_mark:
+Fetch-all-diagnostics | :heavy_check_mark: | :heavy_check_mark:
 Fixits-and-diagnostics | :heavy_check_mark: | :heavy_check_mark:
 Semantic-syntax-highlighting | :heavy_check_mark: | :heavy_check_mark:
 Code-completion | work-in-progress | work-in-progress
@@ -146,6 +147,7 @@ So, integration tests have all of the important bits which depict the usage of a
 | `source_code_model_indexer_drop_all_request(handle, remove_db_from_disk)` | `status`, `None` |
 | `source_code_model_indexer_drop_all_and_run_on_directory_request(handle)` | `status`, `None` |
 | `source_code_model_indexer_find_all_references_request(handle, filename, line, col)` | `status`, list_of_references(`filename`, `line`, `column`, `context`) |
+| `source_code_model_indexer_fetch_all_diagnostics_request(handle, sorting_strategy)` | `status`, list_of_diagnostics(`filename`, `line`, `column`, `description`, `severity`) |
 
 ----------------------------
 
