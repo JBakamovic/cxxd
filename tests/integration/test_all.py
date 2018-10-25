@@ -196,6 +196,13 @@ class CxxdIntegrationTest(unittest.TestCase):
         self.source_code_model_cb_result.wait_until_available()
         self.assertTrue(self.source_code_model_cb_result['diagnostics'].status)
 
+    def test_source_code_model_auto_completion_code_complete_request(self):
+        fut = ext_dep['chaiscript']['path'] + os.sep + 'src' + os.sep + 'main.cpp'
+        cxxd.api.source_code_model_auto_completion_code_complete_request(self.handle, fut, fut, 44, 5, 1235, 0)
+        self.source_code_model_cb_result.wait_until_available()
+        self.assertTrue(self.source_code_model_cb_result['auto_completion'].status)
+        self.assertNotEqual(self.source_code_model_cb_result['auto_completion'].num_of_code_complete_candidates, 0)
+
     def test_clang_tidy_request(self):
         fut = ext_dep['chaiscript']['path'] + os.sep + 'src' + os.sep + 'chaiscript_stdlib_module.cpp'
         cxxd.api.clang_tidy_request(self.handle, fut, apply_fixes=False)
