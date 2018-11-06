@@ -10,9 +10,11 @@ class ServerTest(unittest.TestCase):
     def setUp(self):
         self.payload = [0x1, 0x2, 0x3]
         self.inexisting_service_id = 0xFF
+        self.project_root_directory = '/tmp'
         self.handle = multiprocessing.Queue()
         self.server = server.Server(
             self.handle,
+            self.project_root_directory,
             cxxd_mocks.ServicePluginMock(),
             cxxd_mocks.ServicePluginMock(),
             cxxd_mocks.ServicePluginMock(),

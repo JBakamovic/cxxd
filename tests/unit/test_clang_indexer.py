@@ -52,11 +52,11 @@ class ClangIndexerTest(unittest.TestCase):
             parser.ast_node_identifier.ASTNodeId.getUnsupportedId(),
         ]
         self.root_directory = os.path.dirname(self.test_file.name)
-        self.service = ClangIndexer(self.parser, self.root_directory)
+        self.service = ClangIndexer(self.parser, self.root_directory, cxxd_mocks.CxxdConfigParserMock())
 
     def test_if_symbol_db_conn_is_automatically_established_in_case_db_already_exists_on_the_disk(self):
         symbol_db = SymbolDatabase(os.path.join(self.root_directory, self.service.symbol_db_name))
-        service = ClangIndexer(self.parser, self.root_directory)
+        service = ClangIndexer(self.parser, self.root_directory, cxxd_mocks.CxxdConfigParserMock())
         self.assertTrue(service.symbol_db_exists())
         self.assertTrue(service.get_symbol_db().is_open())
         symbol_db.close()
@@ -64,7 +64,7 @@ class ClangIndexerTest(unittest.TestCase):
         self.assertFalse(service.symbol_db_exists())
 
     def test_if_symbol_db_conn_is_not_established_in_case_db_does_not_exist_on_the_disk(self):
-        service = ClangIndexer(self.parser, self.root_directory)
+        service = ClangIndexer(self.parser, self.root_directory, cxxd_mocks.CxxdConfigParserMock())
         self.assertFalse(service.symbol_db_exists())
         self.assertFalse(service.get_symbol_db().is_open())
 
@@ -81,6 +81,16 @@ class ClangIndexerTest(unittest.TestCase):
         with mock.patch.object(self.service, 'symbol_db_exists', return_value=False):
             with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file') as mock_index_single_file:
                 success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file_edited.name])
+        mock_index_single_file.assert_not_called()
+        self.assertEqual(success, False)
+        self.assertEqual(args, None)
+
+    def test_if_run_on_single_file_skips_indexing_when_file_is_in_blacklisted_directory(self):
+        self.service.blacklisted_directories.append(os.path.dirname(self.test_file.name))
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+            with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file') as mock_index_single_file:
+                success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file.name])
+        self.service.blacklisted_directories.pop()
         mock_index_single_file.assert_not_called()
         self.assertEqual(success, False)
         self.assertEqual(args, None)
@@ -168,6 +178,18 @@ class ClangIndexerTest(unittest.TestCase):
         self.assertEqual(success, True)
         self.assertEqual(args, None)
 
+    def test_if_run_on_directory_creates_a_list_of_cpp_files_wrt_blacklisted_directories(self):
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=False):
+            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                with mock.patch.object(self.service.symbol_db, 'create_data_model') as mock_symbol_db_create_data_model:
+                    with mock.patch('services.source_code_model.indexer.clang_indexer.get_cpp_file_list', return_value=[]) as mock_get_cpp_file_list:
+                        success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY])
+        mock_symbol_db_open.assert_called_once_with(self.service.symbol_db_path)
+        mock_symbol_db_create_data_model.assert_called_once()
+        mock_get_cpp_file_list.assert_called_once_with(self.service.root_directory, self.service.blacklisted_directories)
+        self.assertEqual(success, True)
+        self.assertEqual(args, None)
+
     def test_if_run_on_directory_handles_when_there_are_no_files_existing_in_root_directory(self):
         with mock.patch.object(self.service, 'symbol_db_exists', return_value=False):
             with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
@@ -176,7 +198,7 @@ class ClangIndexerTest(unittest.TestCase):
                         success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY])
         mock_symbol_db_open.assert_called_once_with(self.service.symbol_db_path)
         mock_symbol_db_create_data_model.assert_called_once()
-        mock_get_cpp_file_list.assert_called_once_with(self.service.root_directory)
+        mock_get_cpp_file_list.assert_called_once_with(self.service.root_directory, self.service.blacklisted_directories)
         self.assertEqual(success, True)
         self.assertEqual(args, None)
 
@@ -200,7 +222,7 @@ class ClangIndexerTest(unittest.TestCase):
                             success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY])
         mock_symbol_db_open.assert_called_once_with(self.service.symbol_db_path)
         mock_symbol_db_create_data_model.assert_called_once()
-        mock_get_cpp_file_list.assert_called_once_with(self.service.root_directory)
+        mock_get_cpp_file_list.assert_called_once_with(self.service.root_directory, self.service.blacklisted_directories)
         mock_slice_it.assert_called_once_with(cpp_file_list, len(cpp_file_list)/multiprocessing.cpu_count())
         mock_create_indexer_input_list_file.assert_called_with(self.service.root_directory, mock.ANY, mock_slice_it.return_value[len(cpp_file_list_chunks)-1])
         mock_create_empty_symbol_db.assert_called_with(self.service.root_directory, self.service.symbol_db_name)
@@ -224,6 +246,18 @@ class ClangIndexerTest(unittest.TestCase):
         mock_symbol_db_delete_entry.assert_not_called()
         mock_remove_root_dir_from_filename.assert_not_called()
         self.assertEqual(success, False)
+        self.assertEqual(args, None)
+
+    def test_if_drop_single_file_skips_deleting_an_entry_when_file_is_in_blacklisted_directory(self):
+        self.service.blacklisted_directories.append(os.path.dirname(self.test_file.name))
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                with mock.patch.object(self.service.symbol_db, 'delete_entry') as mock_symbol_db_delete_entry:
+                    success, args = self.service([SourceCodeModelIndexerRequestId.DROP_SINGLE_FILE, self.test_file.name])
+        self.service.blacklisted_directories.pop()
+        mock_symbol_db_open.assert_not_called()
+        mock_symbol_db_delete_entry.assert_not_called()
+        self.assertEqual(success, True)
         self.assertEqual(args, None)
 
     def test_if_drop_single_file_deletes_an_entry_from_symbol_db(self):
@@ -622,28 +656,40 @@ class ClangIndexerTest(unittest.TestCase):
         self.assertTrue(os.path.exists(get_clang_index_path()))
 
     def test_if_get_cpp_file_list_returns_cpp_files_only(self):
+        blacklisted_directories = []
         os_walk_dir_list = (self.root_directory)
         os_walk_file_list = ('/tmp/a.cpp', '/tmp/b.cc', '/tmp/c.cxx', '/tmp/d.c', '/tmp/e.h', '/tmp/f.hh', '/tmp/g.hpp')
         with mock.patch('os.walk', return_value=[(self.root_directory, os_walk_dir_list, os_walk_file_list),]) as mock_os_walk:
-            cpp_list = get_cpp_file_list(self.root_directory)
+            cpp_list = get_cpp_file_list(self.root_directory, blacklisted_directories)
         mock_os_walk.assert_called_once_with(self.root_directory)
         self.assertEqual(len(os_walk_file_list), len(cpp_list))
 
     def test_if_get_cpp_file_list_does_not_include_non_cpp_files(self):
+        blacklisted_directories = []
         os_walk_dir_list = (self.root_directory)
         os_walk_file_list = ('/tmp/a.md', '/tmp/b.txt', '/tmp/c.json')
         with mock.patch('os.walk', return_value=[(self.root_directory, os_walk_dir_list, os_walk_file_list),]) as mock_os_walk:
-            cpp_list = get_cpp_file_list(self.root_directory)
+            cpp_list = get_cpp_file_list(self.root_directory, blacklisted_directories)
         mock_os_walk.assert_called_once_with(self.root_directory)
         self.assertEqual(0, len(cpp_list))
 
     def test_if_get_cpp_file_list_returns_empty_list_for_no_files_found(self):
+        blacklisted_directories = []
         os_walk_dir_list = (self.root_directory)
         os_walk_file_list = ()
         with mock.patch('os.walk', return_value=[(self.root_directory, os_walk_dir_list, os_walk_file_list),]) as mock_os_walk:
-            cpp_list = get_cpp_file_list(self.root_directory)
+            cpp_list = get_cpp_file_list(self.root_directory, blacklisted_directories)
         mock_os_walk.assert_called_once_with(self.root_directory)
         self.assertEqual(0, len(cpp_list))
+
+    def test_if_get_cpp_file_list_only_returns_cpp_files_which_are_not_in_blacklisted_directories(self):
+        blacklisted_directories = ['/tmp']
+        os_walk_dir_list = (self.root_directory)
+        os_walk_file_list = ('/home/1.cpp', '/home/2.cpp', '/home/3.cpp', '/tmp/4.cpp')
+        with mock.patch('os.walk', return_value=[(self.root_directory, os_walk_dir_list, os_walk_file_list),]) as mock_os_walk:
+            cpp_list = get_cpp_file_list(self.root_directory, blacklisted_directories)
+        mock_os_walk.assert_called_once_with(self.root_directory)
+        self.assertEqual(len(os_walk_file_list)-1, len(cpp_list))
 
     def test_if_create_indexer_input_list_file_creates_a_file_containing_newline_separated_list_of_files_with_given_prefix_in_given_directory(self):
         input_list_prefix = 'input_list_0'

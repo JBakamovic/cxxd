@@ -150,5 +150,65 @@ TabWidth: 4                             \n\
         return fd
 
     @staticmethod
+    def gen_cxxd_config_filename():
+        fd = open(tempfile.gettempdir() + os.path.sep + '.cxxd_config.json', 'w', 0)
+        fd.write('\
+{                                               \n\
+    "indexer" : {                               \n\
+        "exclude-dirs": [                       \n\
+            "test",                             \n\
+            "CMake",                            \n\
+            "CMakeFiles"                        \n\
+         ]                                      \n\
+    },                                          \n\
+    "clang-tidy" : {                            \n\
+        "args": {                               \n\
+            "-analyze-temporary-dtors" : true,  \n\
+            "-explain-config" : false,          \n\
+            "-format-style" : "llvm"            \n\
+        }                                       \n\
+    },                                          \n\
+    "clang-format" : {                          \n\
+        "args": {                               \n\
+            "-sort-includes" : true,            \n\
+            "-style" : "llvm",                  \n\
+            "-verbose" : true                   \n\
+        }                                       \n\
+    },                                          \n\
+    "project-builder" : {                       \n\
+        "args": {                               \n\
+            "--verbose" : true                  \n\
+        }                                       \n\
+    }                                           \n\
+}                                               \n\
+        ')
+        return fd
+
+    @staticmethod
+    def gen_empty_cxxd_config_filename():
+        fd = open(tempfile.gettempdir() + os.path.sep + '.empty_cxxd_config.json', 'w', 0)
+        fd.write('\
+{                                               \n\
+    "indexer" : {                               \n\
+        "exclude-dirs": [                       \n\
+         ]                                      \n\
+    },                                          \n\
+    "clang-tidy" : {                            \n\
+        "args": {                               \n\
+        }                                       \n\
+    },                                          \n\
+    "clang-format" : {                          \n\
+        "args": {                               \n\
+        }                                       \n\
+    },                                          \n\
+    "project-builder" : {                       \n\
+        "args": {                               \n\
+        }                                       \n\
+    }                                           \n\
+}                                               \n\
+        ')
+        return fd
+
+    @staticmethod
     def close_gen_file(fd):
         os.remove(fd.name)

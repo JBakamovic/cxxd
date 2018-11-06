@@ -1,5 +1,7 @@
 import logging
+import os
 from multiprocessing import Process
+from parser.cxxd_config_parser import CxxdConfigParser
 from services.clang_format_service import ClangFormat
 from services.clang_tidy_service import ClangTidy
 from services.project_builder_service import ProjectBuilder
@@ -62,13 +64,15 @@ class Server():
             else:
                 logging.warning("Service process must be started before issuing any kind of requests!")
 
-    def __init__(self, handle, source_code_model_plugin, project_builder_plugin, clang_format_plugin, clang_tidy_plugin):
+    def __init__(self, handle, project_root_directory, source_code_model_plugin, project_builder_plugin, clang_format_plugin, clang_tidy_plugin):
         self.handle = handle
+        self.cxxd_config_filename = '.cxxd_config.json'
+        self.cxxd_config_parser = CxxdConfigParser(os.path.join(project_root_directory, self.cxxd_config_filename))
         self.service = {
-            ServiceId.SOURCE_CODE_MODEL : self.ServiceHandler(SourceCodeModel(source_code_model_plugin)),
-            ServiceId.PROJECT_BUILDER   : self.ServiceHandler(ProjectBuilder(project_builder_plugin)),
-            ServiceId.CLANG_FORMAT      : self.ServiceHandler(ClangFormat(clang_format_plugin)),
-            ServiceId.CLANG_TIDY        : self.ServiceHandler(ClangTidy(clang_tidy_plugin)),
+            ServiceId.SOURCE_CODE_MODEL : self.ServiceHandler(SourceCodeModel(project_root_directory, self.cxxd_config_parser, source_code_model_plugin)),
+            ServiceId.PROJECT_BUILDER   : self.ServiceHandler(ProjectBuilder(project_root_directory, self.cxxd_config_parser, project_builder_plugin)),
+            ServiceId.CLANG_FORMAT      : self.ServiceHandler(ClangFormat(project_root_directory, self.cxxd_config_parser, clang_format_plugin)),
+            ServiceId.CLANG_TIDY        : self.ServiceHandler(ClangTidy(project_root_directory, self.cxxd_config_parser, clang_tidy_plugin)),
         }
         self.action = {
             ServerRequestId.START_ALL_SERVICES    : self.__start_all_services,

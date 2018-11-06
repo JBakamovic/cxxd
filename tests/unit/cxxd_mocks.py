@@ -84,3 +84,7 @@ class TranslationUnitMock():
     @property
     def diagnostics(self):
         return self.diag
+
+class CxxdConfigParserMock():
+    def get_blacklisted_directories(self):
+        return []

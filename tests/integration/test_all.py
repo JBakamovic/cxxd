@@ -15,10 +15,11 @@ ext_dep = {
 }
 
 # We have to provide a factory method to instantiate the server the way we want ...
-def get_server_instance(handle, args):
+def get_server_instance(handle, proj_root_directory, args):
     source_code_model_cb_result, clang_format_cb_result, clang_tidy_cb_result, project_builder_cb_result  = args
     return cxxd.server.Server(
         handle,
+        proj_root_directory,
         cxxd_plugins.SourceCodeModelServicePluginMock(source_code_model_cb_result),
         cxxd_plugins.ProjectBuilderServicePluginMock(project_builder_cb_result),
         cxxd_plugins.ClangFormatServicePluginMock(clang_format_cb_result),
@@ -76,14 +77,15 @@ class CxxdIntegrationTest(unittest.TestCase):
                 cls.clang_tidy_cb_result,
                 cls.project_builder_cb_result,
             ),
+            cls.proj_root_dir,
             cls.log_file
         )
 
         # And services that we want to test ...
-        cxxd.api.source_code_model_start(cls.handle, cls.proj_root_dir, cls.compiler_args)
-        cxxd.api.project_builder_start(cls.handle, cls.proj_root_dir)
+        cxxd.api.source_code_model_start(cls.handle, cls.compiler_args)
         cxxd.api.clang_format_start(cls.handle, cls.clang_format_config)
         cxxd.api.clang_tidy_start(cls.handle, cls.compiler_args)
+        cxxd.api.project_builder_start(cls.handle)
 
         # Run the indexer ... Wait until it completes.
         cxxd.api.source_code_model_indexer_run_on_directory_request(cls.handle)

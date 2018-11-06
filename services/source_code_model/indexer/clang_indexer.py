@@ -6,6 +6,7 @@ import shlex
 import subprocess
 import time
 import tempfile
+from cxxd.parser.cxxd_config_parser import CxxdConfigParser
 from cxxd.parser.clang_parser import ClangParser
 from cxxd.parser.tunit_cache import TranslationUnitCache, NoCache
 from cxxd.parser.ast_node_identifier import ASTNodeId
@@ -34,7 +35,8 @@ class ClangIndexer(object):
         ASTNodeId.getMacroDefinitionId(), ASTNodeId.getMacroInstantiationId()                                                                # handle macros
     ]
 
-    def __init__(self, parser, root_directory):
+    def __init__(self, parser, root_directory, cxxd_config_parser):
+        self.cxxd_config_parser     = cxxd_config_parser
         self.root_directory         = root_directory
         self.symbol_db_name         = '.cxxd_index.db'
         self.symbol_db_path         = os.path.join(self.root_directory, self.symbol_db_name)
@@ -48,6 +50,7 @@ class ClangIndexer(object):
             SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES   : self.__find_all_references,
             SourceCodeModelIndexerRequestId.FETCH_ALL_DIAGNOSTICS : self.__fetch_all_diagnostics,
         }
+        self.blacklisted_directories = self.cxxd_config_parser.get_blacklisted_directories()
 
     def symbol_db_exists(self):
         return os.path.exists(self.symbol_db_path)
@@ -75,17 +78,18 @@ class ClangIndexer(object):
         if self.symbol_db_exists():
             original_filename = str(args[0])
             contents_filename = str(args[1])
-            if contents_filename == original_filename: # Files modified but not saved will _NOT_ get indexed
-                self.symbol_db.open(self.symbol_db_path)
-                self.symbol_db.delete_entry(remove_root_dir_from_filename(self.root_directory, original_filename))
-                success = index_single_file(
-                    self.parser,
-                    self.root_directory,
-                    contents_filename,
-                    original_filename,
-                    self.symbol_db
-                )
-                # TODO what if index_single_file() fails? we should revert the symbol_db.delete_entry() back
+            if not CxxdConfigParser.is_file_blacklisted(self.blacklisted_directories, original_filename):
+                if contents_filename == original_filename: # Files modified but not saved will _NOT_ get indexed
+                    self.symbol_db.open(self.symbol_db_path)
+                    self.symbol_db.delete_entry(remove_root_dir_from_filename(self.root_directory, original_filename))
+                    success = index_single_file(
+                        self.parser,
+                        self.root_directory,
+                        contents_filename,
+                        original_filename,
+                        self.symbol_db
+                    )
+                    # TODO what if index_single_file() fails? we should revert the symbol_db.delete_entry() back
             else:
                 logging.warning('Indexing will not take place on existing files whose contents were modified but not saved.')
         else:
@@ -107,7 +111,7 @@ class ClangIndexer(object):
             self.symbol_db.create_data_model()
 
             # Build-up a list of source code files from given project directory
-            cpp_file_list = get_cpp_file_list(self.root_directory)
+            cpp_file_list = get_cpp_file_list(self.root_directory, self.blacklisted_directories)
 
             indexing_subprocess_list = []
             symbol_db_list = []
@@ -175,8 +179,9 @@ class ClangIndexer(object):
         symbol_db_exists = self.symbol_db_exists()
         if symbol_db_exists:
             filename = str(args[0])
-            self.symbol_db.open(self.symbol_db_path)
-            self.symbol_db.delete_entry(remove_root_dir_from_filename(self.root_directory, filename))
+            if not CxxdConfigParser.is_file_blacklisted(self.blacklisted_directories, filename):
+                self.symbol_db.open(self.symbol_db_path)
+                self.symbol_db.delete_entry(remove_root_dir_from_filename(self.root_directory, filename))
         else:
             logging.error('Action cannot be run if symbol database does not exist yet!')
         return symbol_db_exists, None
@@ -333,13 +338,14 @@ def get_clang_index_path():
     this_script_directory = os.path.dirname(os.path.realpath(__file__))
     return os.path.join(this_script_directory, 'clang_index.py')
 
-def get_cpp_file_list(root_directory):
+def get_cpp_file_list(root_directory, blacklisted_directories):
     cpp_file_list = []
     for dirpath, dirs, files in os.walk(root_directory):
-        for file in files:
-            name, extension = os.path.splitext(file)
+        for filename in files:
+            name, extension = os.path.splitext(filename)
             if extension in ['.cpp', '.cc', '.cxx', '.c', '.h', '.hh', '.hpp']:
-                cpp_file_list.append(os.path.join(dirpath, file))
+                if not CxxdConfigParser.is_file_blacklisted(blacklisted_directories, filename):
+                    cpp_file_list.append(os.path.join(dirpath, filename))
     return cpp_file_list
 
 def create_indexer_input_list_file(directory, with_prefix, cpp_file_list_chunk):
