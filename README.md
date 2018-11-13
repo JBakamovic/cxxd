@@ -38,6 +38,7 @@ Clang-tidy | :heavy_check_mark: | :heavy_check_mark:
 Clang-format | :heavy_check_mark: | :heavy_check_mark:
 JSON-compilation-database | :heavy_check_mark: | :heavy_check_mark:
 Project-builder | :heavy_check_mark: | :heavy_check_mark:
+External configuration via JSON | :heavy_check_mark: | :heavy_check_mark:
 
 In essence, the main idea behind it is very much alike to what [`LSP`](https://microsoft.github.io/language-server-protocol/) offers 
 and its implementations like [`clangd`](https://clang.llvm.org/extra/clangd.html).
@@ -123,7 +124,7 @@ So, integration tests have all of the important bits which depict the usage of a
 
 | API | Return Value |
 | ------------- |:-------------:|
-| `server_start(get_server_instance, get_server_instance_args, log_file)` | `handle` |
+| `server_start(get_server_instance, get_server_instance_args, project_root_directory, log_file)` | `handle` |
 | `server_stop(handle, *payload)`| `status`, `payload` |
 | `server_start_all_services(handle, *payload)` | `status`, `payload` |
 | `server_stop_all_services(handle, *payload)` | `status`, `payload` |
@@ -134,7 +135,7 @@ So, integration tests have all of the important bits which depict the usage of a
 
 | API | Return Value |
 | ------------- |:-------------:|
-| `source_code_model_start(handle, project_root_directory, compiler_args)` | `status`, `payload` |
+| `source_code_model_start(handle, compiler_args)` | `status`, `payload` |
 | `source_code_model_stop(handle, subscribe_for_callback)` | `status`, `payload` |
 | `source_code_model_semantic_syntax_highlight_request(handle, filename, contents)` | `status`, [`translation_unit_ast`, `ast_visitor_function`] |
 | `source_code_model_diagnostics_request(handle, filename, contents)` | `status`, [`diagnostics_iterator`, `diagnostics_visitor_function`, `fixit_visitor_function`] |
@@ -155,7 +156,7 @@ So, integration tests have all of the important bits which depict the usage of a
 
 | API | Return Value |
 | ------------- |:-------------:|
-| `project_builder_start(handle, project_root_directory)` | `status`, `payload` |
+| `project_builder_start(handle)` | `status`, `payload` |
 | `project_builder_stop(handle, subscribe_for_callback)` | `status`, `payload` |
 | `project_builder_request(handle, build_command)` | `status`, [`build_cmd_output_filename`, `build_exit_code`, `duration`] |
 
@@ -165,7 +166,7 @@ So, integration tests have all of the important bits which depict the usage of a
 
 | API | Return Value |
 | ------------- |:-------------:|
-| `clang_format_start(handle, config_file)` | `status`, `payload` |
+| `clang_format_start(handle)` | `status`, `payload` |
 | `clang_format_stop(handle, subscribe_for_callback)` | `status`, `payload` |
 | `clang_format_request(handle, filename)` | `status`, `None` |
 
