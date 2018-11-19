@@ -67,8 +67,8 @@ class ClangParser():
     def get_compiler_args_db(self):
         return self.compiler_args
 
-    def auto_complete(self, tunit, line, column):
-        return tunit.codeComplete(tunit.spelling, line, column)
+    def auto_complete(self, tunit, line, column, complete_macros=False, complete_lang_constructs=False):
+        return tunit.codeComplete(tunit.spelling, line, column, include_macros=complete_macros, include_code_patterns=complete_lang_constructs)
 
     def sort_code_completion_results(self, auto_completion_candidates):
         _libclang = clang.cindex.conf.get_cindex_library()
