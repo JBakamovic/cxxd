@@ -105,8 +105,13 @@ class TranslationUnitCache():
             return self.tunit[tunit_filename]
         return (None, None,)
 
-    def insert(self, tunit_filename, tunit):
-        self.tunit[tunit_filename] = (tunit, os.path.getmtime(tunit.spelling),)
+    def insert(self, tunit_filename, tunit, mtime):
+        self.tunit[tunit_filename] = (tunit, mtime,)
+
+    def update(self, tunit_filename, tunit, mtime):
+        curr_tunit, curr_mtime = self.tunit[tunit_filename]
+        curr_tunit = tunit
+        curr_mtime = mtime
 
     def iterkeys(self):
         return self.tunit.iterkeys()
