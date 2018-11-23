@@ -103,10 +103,10 @@ class TranslationUnitCache():
     def fetch(self, tunit_filename):
         if tunit_filename in self.tunit:
             return self.tunit[tunit_filename]
-        return (None, None,)
+        return (None, None, None,)
 
-    def insert(self, tunit_filename, tunit, mtime):
-        self.tunit[tunit_filename] = (tunit, mtime,)
+    def insert(self, tunit_filename, tunit, build_flags, mtime):
+        self.tunit[tunit_filename] = (tunit, build_flags, mtime,)
 
     def update(self, tunit_filename, tunit, mtime):
         curr_tunit, curr_mtime = self.tunit[tunit_filename]

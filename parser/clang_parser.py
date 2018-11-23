@@ -77,11 +77,11 @@ class ClangParser():
         _libclang.clang_sortCodeCompletionResults(auto_completion_candidates.results, len(auto_completion_candidates.results))
 
     def parse(self, contents_filename, original_filename, opts = clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD):
-        def do_parse(contents_filename, original_filename):
+        def do_parse(contents_filename, original_filename, build_flags):
             try:
                 return self.index.parse(
                     path = contents_filename,
-                    args = self.compiler_args.get(original_filename, contents_filename != original_filename),
+                    args = build_flags,
                     options = opts
                     # TODO CXTranslationUnit_KeepGoing?
                 )
@@ -89,21 +89,29 @@ class ClangParser():
                 logging.error(sys.exc_info())
 
         # Check if we have this tunit already in the cache ...
-        tunit, m_timestamp = self.tunit_cache.fetch(original_filename)
+        tunit, tunit_build_flags, tunit_timestamp = self.tunit_cache.fetch(original_filename)
         if tunit is None:
             logging.info('TUnit NOT found in cache!')
-            tunit = do_parse(contents_filename, original_filename)      # If we don't, we simply have to parse it ...
+            build_flags = self.compiler_args.get(original_filename, contents_filename != original_filename)
+            tunit = do_parse(
+                contents_filename,
+                original_filename,
+                build_flags
+            )
             if tunit:
-                self.tunit_cache.insert(original_filename, tunit, os.path.getmtime(tunit.spelling))
+                self.tunit_cache.insert(original_filename, tunit, build_flags, os.path.getmtime(tunit.spelling))
         else:
             logging.info('TUnit found in cache!')
             if original_filename != contents_filename:
-                new_timestamp = os.path.getmtime(contents_filename)
-                if m_timestamp != new_timestamp:      # We still have to make sure that cached tunit is not out-of-date.
+                new_tunit_timestamp = os.path.getmtime(contents_filename)
+                if tunit_timestamp != new_tunit_timestamp:      # We still have to make sure that cached tunit is not out-of-date.
                     logging.info('But it is too old ... reparsing')
-                    with open(contents_filename) as f:
-                        tunit.reparse([(original_filename, f.read()),])
-                        self.tunit_cache.update(original_filename, tunit, new_timestamp)
+                    tunit = do_parse(contents_filename, original_filename, tunit_build_flags)
+                    if tunit:
+                        self.tunit_cache.insert(original_filename, tunit, tunit_build_flags, os.path.getmtime(tunit.spelling))
+                    #with open(contents_filename) as f:
+                    #    tunit.reparse([(original_filename, f.read()),])
+                    #    self.tunit_cache.update(original_filename, tunit, new_tunit_timestamp)
 
         return tunit
 
