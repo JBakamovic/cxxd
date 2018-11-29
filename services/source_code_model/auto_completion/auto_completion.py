@@ -39,25 +39,6 @@ class AutoCompletion():
         logging.error("Unknown operation with ID={0} triggered! Valid operations are: {1}".format(id, self.op))
         return False, None
 
-    def __get_auto_completion_candidates(self, contents_filename, original_filename, line, column):
-        def parsing_flags():
-            # TODO Do we need PARSE_DETAILED_PROCESSING_RECORD flag here? It looks like it makes no difference when
-            #      auto-completing macro's. It does not get auto-completed regardless of presence of this flag.
-            # TODO Add support for PARSE_INCLUDE_BRIEF_COMMENTS_IN_CODE_COMPLETION
-            return \
-                clang.cindex.TranslationUnit.PARSE_CACHE_COMPLETION_RESULTS | \
-                clang.cindex.TranslationUnit.PARSE_PRECOMPILED_PREAMBLE | \
-                clang.cindex.TranslationUnit.PARSE_INCOMPLETE
-
-        return self.parser.auto_complete(
-            self.parser.parse(
-                contents_filename, original_filename,
-                parsing_flags()
-            ),
-            line,
-            column + 1
-        )
-
     def __drop_completion_candidate_list(self):
         del self.completion_candidates[:]
 
@@ -91,7 +72,7 @@ class AutoCompletion():
             elif is_member_access(line_string[prev_char_idx:next_char_idx]) or\
                 is_scope_operator(line_string[prev_char_idx:next_char_idx]):
                 self.__drop_completion_candidate_list()
-                self.auto_complete = self.__get_auto_completion_candidates(contents_filename, original_filename, line, column)
+                self.auto_complete = self.parser.code_complete(contents_filename, original_filename, line, column)
                 self.completion_candidates = list(self.auto_complete.results) # Can't do any pre-filtering here
             # We pay more attention when handling identifiers
             elif is_identifier(current_char):
@@ -102,7 +83,7 @@ class AutoCompletion():
                     symbol = line_string[0:next_char_idx] # If no non-identifier is found in [0:next_char_idx] range, then we have our symbol already
 
                 if len(self.completion_candidates) == 0:
-                    self.auto_complete = self.__get_auto_completion_candidates(contents_filename, original_filename, line, column)
+                    self.auto_complete = self.parser.code_complete(contents_filename, original_filename, line, column)
                     self.completion_candidates = self.__filter_completion_candidates(
                         self.auto_complete.results,
                         symbol.strip()

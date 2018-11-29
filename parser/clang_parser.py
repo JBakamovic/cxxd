@@ -64,11 +64,33 @@ class ClangParser():
         self.tunit_cache   = tunit_cache
         logging.info("libclang version: '{0}'".format(ClangParser.__get_clang_version()))
 
+    def default_parsing_flags(self):
+        # TODO Add support for PARSE_INCLUDE_BRIEF_COMMENTS_IN_CODE_COMPLETION
+        # TODO CXTranslationUnit_KeepGoing?
+        return \
+            clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD | \
+            clang.cindex.TranslationUnit.PARSE_CACHE_COMPLETION_RESULTS | \
+            clang.cindex.TranslationUnit.PARSE_PRECOMPILED_PREAMBLE | \
+            clang.cindex.TranslationUnit.PARSE_INCOMPLETE
+
     def get_compiler_args_db(self):
         return self.compiler_args
 
-    def auto_complete(self, tunit, line, column, complete_macros=False, complete_lang_constructs=False):
-        return tunit.codeComplete(tunit.spelling, line, column, include_macros=complete_macros, include_code_patterns=complete_lang_constructs)
+    def code_complete(self, contents_filename, original_filename, line, column, complete_macros=False, complete_lang_constructs=False):
+        # Check if TUnit is already cached. If not, we have to parse it first ...
+        tunit, tunit_build_flags, tunit_timestamp = self.tunit_cache.fetch(original_filename)
+        if tunit is None:
+            tunit = self.parse(contents_filename, original_filename)
+        # Now, trigger the code-complete on given TUnit ...
+        with open(contents_filename) as f:
+            return tunit.codeComplete(
+                tunit.spelling,
+                line,
+                column + 1,
+                include_macros=complete_macros,
+                include_code_patterns=complete_lang_constructs,
+                unsaved_files=[(original_filename, f.read()),]
+            )
 
     def sort_code_completion_results(self, auto_completion_candidates):
         _libclang = clang.cindex.conf.get_cindex_library()
@@ -76,14 +98,13 @@ class ClangParser():
         _libclang.clang_sortCodeCompletionResults.restype  = None
         _libclang.clang_sortCodeCompletionResults(auto_completion_candidates.results, len(auto_completion_candidates.results))
 
-    def parse(self, contents_filename, original_filename, opts = clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD):
+    def parse(self, contents_filename, original_filename, opts=None):
         def do_parse(contents_filename, original_filename, build_flags):
             try:
                 return self.index.parse(
                     path = contents_filename,
                     args = build_flags,
-                    options = opts
-                    # TODO CXTranslationUnit_KeepGoing?
+                    options = self.default_parsing_flags() if opts is None else opts
                 )
             except:
                 logging.error(sys.exc_info())
