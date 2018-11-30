@@ -1,4 +1,7 @@
+import cProfile
 import os
+import pstats
+import sys
 import unittest
 
 import cxxd.api
@@ -46,6 +49,7 @@ def revert_the_file_content_change(root_dir, filename):
 
 class CxxdIntegrationTest(unittest.TestCase):
     DROP_SYMBOL_DB = True
+    PROFILER_OUTPUT = None
 
     @classmethod
     def setUpClass(cls):
@@ -55,6 +59,11 @@ class CxxdIntegrationTest(unittest.TestCase):
         cls.compiler_args = cls.proj_root_dir + os.sep + 'compile_commands.json'
         cls.clang_format_config = cls.proj_root_dir + os.sep + '.clang-format'
         cls.log_file = current_dir + os.sep + 'cxxd.log'
+
+        # Profiling stats
+        cls.profiler = None
+        cls.profiling_stats = []
+        cls.profiling_output = open(CxxdIntegrationTest.PROFILER_OUTPUT, 'w') if CxxdIntegrationTest.PROFILER_OUTPUT else sys.stdout
 
         # Generate compile_commands.json
         gen_compile_commands_json(cls.proj_root_dir)
@@ -100,15 +109,21 @@ class CxxdIntegrationTest(unittest.TestCase):
             assert cls.source_code_model_cb_result['indexer'].status == True # can't use unittest asserts here ...
         cxxd.api.server_stop(cls.handle)
         os.remove(cls.log_file)
+        cls.profiling_stats.sort(key=lambda stat: stat.total_tt) # Sort profiling stats by total time
+        for stat in cls.profiling_stats: # Dump the profiling stats we collected.
+            stat.sort_stats('cumtime').print_stats()
 
     def setUp(self):
         self.source_code_model_cb_result.reset()
         self.clang_format_cb_result.reset()
         self.clang_tidy_cb_result.reset()
         self.project_builder_cb_result.reset()
+        self.profiler = cProfile.Profile() # We don't want to accumulate profiling stats over all tests.
+        self.profiler.enable()
 
     def tearDown(self):
-        pass
+        self.profiler.create_stats()
+        self.profiling_stats.append(pstats.Stats(self.profiler, stream=self.profiling_output))
 
     def test_source_code_model_indexer_run_on_directory(self):
         cxxd.api.source_code_model_indexer_run_on_directory_request(self.handle)
@@ -203,12 +218,15 @@ class CxxdIntegrationTest(unittest.TestCase):
         self.assertNotEqual(self.project_builder_cb_result.output, '')
 
 if __name__ == "__main__":
-    import argparse, sys
+    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--do_not_drop_symbol_db', action='store_true',\
         help='Use if you want to instruct the CxxdIntegrationTest not to drop the symbol database after it has\
         run all of the tests. Dropping the database after each run will slow down the develop-test-debug cycle\
         as indexing operation takes a quite some time. Hence, this flag''s purpose is to override such behavior.'
+    )
+    parser.add_argument('--profiler_output', help='Name of a file you want profiler to output its stats to. If\
+        left empty, profiler stats will be printed to stdout.'
     )
     parser.add_argument('unittest_args', nargs='*')
 
@@ -218,5 +236,6 @@ if __name__ == "__main__":
     sys.argv[1:] = args.unittest_args
 
     CxxdIntegrationTest.DROP_SYMBOL_DB = not args.do_not_drop_symbol_db
+    CxxdIntegrationTest.PROFILER_OUTPUT = args.profiler_output
 
     unittest.main()
