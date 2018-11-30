@@ -83,7 +83,7 @@ class CxxdIntegrationTest(unittest.TestCase):
 
         # And services that we want to test ...
         cxxd.api.source_code_model_start(cls.handle, cls.compiler_args)
-        cxxd.api.clang_format_start(cls.handle, cls.clang_format_config)
+        cxxd.api.clang_format_start(cls.handle)
         cxxd.api.clang_tidy_start(cls.handle, cls.compiler_args)
         cxxd.api.project_builder_start(cls.handle)
 
