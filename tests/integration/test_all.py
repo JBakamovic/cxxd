@@ -2,6 +2,7 @@ import cProfile
 import os
 import pstats
 import sys
+import shutil
 import unittest
 
 import cxxd.api
@@ -56,6 +57,9 @@ class CxxdIntegrationTest(unittest.TestCase):
     def setUpClass(cls):
         # Setup some paths
         cls.fut = ext_dep['chaiscript']['path'] + os.sep + 'include' + os.sep + 'chaiscript' + os.sep + 'chaiscript_stdlib.hpp'
+        cls.fut_cpp = ext_dep['chaiscript']['path'] + os.sep + 'src' + os.sep + 'main.cpp'
+        cls.fut_cpp_edited = cls.fut_cpp + '.tmp' # Edited files are serialized into temporary files so we create one here ...
+        shutil.copyfile(cls.fut_cpp, cls.fut_cpp_edited)
         cls.proj_root_dir = ext_dep['chaiscript']['path']
         cls.target_configuration = None # We force Cxxd go into auto-discovery mode if we don't provide any configuration
         cls.clang_format_config = cls.proj_root_dir + os.sep + '.clang-format'
@@ -196,9 +200,19 @@ class CxxdIntegrationTest(unittest.TestCase):
         self.source_code_model_cb_result.wait_until_available()
         self.assertTrue(self.source_code_model_cb_result['diagnostics'].status)
 
-    def test_source_code_model_auto_completion_code_complete_request(self):
-        fut = ext_dep['chaiscript']['path'] + os.sep + 'src' + os.sep + 'main.cpp'
-        cxxd.api.source_code_model_auto_completion_code_complete_request(self.handle, fut, fut, 44, 5, 1235, 0)
+    def test_source_code_model_auto_completion_code_complete_request_on_a_fresh_non_cached_file(self):
+        # This, not so relevant (!), use case involves parsing the file first and THEN triggering the code-complete so it is basically
+        # profiling two different things. Generally, code-complete will NOT be operating on inexisting TUnits because there are other
+        # services which will parse the file we opened way before the code-complete service even kicks in.
+        cxxd.api.source_code_model_auto_completion_code_complete_request(self.handle, self.fut_cpp, self.fut_cpp, 64, 4, 1235, 0)
+        self.source_code_model_cb_result.wait_until_available()
+        self.assertTrue(self.source_code_model_cb_result['auto_completion'].status)
+        self.assertNotEqual(self.source_code_model_cb_result['auto_completion'].num_of_code_complete_candidates, 0)
+
+    def test_source_code_model_auto_completion_code_complete_request_on_cached_file(self):
+        # This use case relies on a fact that TUnit under test will exist in TUnit cache (which it will because of the previous unit test).
+        # We are trying to test how much does it take for code-complete to complete on existing but NOT up-to-date TUnits.
+        cxxd.api.source_code_model_auto_completion_code_complete_request(self.handle, self.fut_cpp, self.fut_cpp_edited, 44, 7, 1235, 0)
         self.source_code_model_cb_result.wait_until_available()
         self.assertTrue(self.source_code_model_cb_result['auto_completion'].status)
         self.assertNotEqual(self.source_code_model_cb_result['auto_completion'].num_of_code_complete_candidates, 0)
