@@ -1,4 +1,5 @@
-import subprocess
+import sys, subprocess
 
-cmd = 'PYTHONPATH=../ python -m unittest discover -s tests/integration -v'
+args = ' '.join(str(arg) for arg in sys.argv[1:])
+cmd = 'PYTHONPATH=../ python tests/integration/test_all.py ' + args
 ret = subprocess.call(cmd, shell=True)
