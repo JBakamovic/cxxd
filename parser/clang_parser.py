@@ -123,16 +123,15 @@ class ClangParser():
                 self.tunit_cache.insert(original_filename, tunit, build_flags, os.path.getmtime(original_filename))
         else:
             logging.info('TUnit found in cache!')
-            if original_filename != contents_filename:
-                new_tunit_timestamp = os.path.getmtime(contents_filename)
-                if tunit_timestamp != new_tunit_timestamp:      # We still have to make sure that cached tunit is not out-of-date.
-                    logging.info('But it is too old ... reparsing')
-                    tunit = do_parse(contents_filename, original_filename, tunit_build_flags)
-                    if tunit:
-                        self.tunit_cache.insert(original_filename, tunit, tunit_build_flags, os.path.getmtime(tunit.spelling))
+            curr_timestamp = os.path.getmtime(contents_filename)
+            if tunit_timestamp != curr_timestamp:      # We still have to make sure that cached tunit is not out-of-date.
+                logging.info('But it is too old ... reparsing')
+                tunit = do_parse(contents_filename, original_filename, tunit_build_flags)
+                if tunit:
+                    self.tunit_cache.update(original_filename, tunit, tunit_build_flags, curr_timestamp)
                     #with open(contents_filename) as f:
                     #    tunit.reparse([(original_filename, f.read()),])
-                    #    self.tunit_cache.update(original_filename, tunit, new_tunit_timestamp)
+                    #    self.tunit_cache.update(original_filename, tunit, curr_timestamp)
 
         return tunit
 
