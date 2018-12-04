@@ -121,6 +121,8 @@ class ClangParser():
             )
             if tunit:
                 self.tunit_cache.insert(original_filename, tunit, build_flags, os.path.getmtime(original_filename))
+            else:
+                logging.error('Unable to parse TUnit!')
         else:
             logging.info('TUnit found in cache!')
             curr_timestamp = os.path.getmtime(contents_filename)
@@ -133,9 +135,12 @@ class ClangParser():
                 )
                 if tunit:
                     self.tunit_cache.update(original_filename, tunit, tunit_build_flags, curr_timestamp)
-                    #with open(contents_filename) as f:
+                    # TODO Reparsing seems to be more unstable (e.g. crashes) and sometimes even slower (?)
+                    # with open(contents_filename) as f:
                     #    tunit.reparse([(original_filename, f.read()),])
                     #    self.tunit_cache.update(original_filename, tunit, curr_timestamp)
+                else:
+                    logging.error('Unable to parse TUnit!')
 
         return tunit
 
