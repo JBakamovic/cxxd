@@ -108,10 +108,9 @@ class TranslationUnitCache():
     def insert(self, tunit_filename, tunit, build_flags, mtime):
         self.tunit[tunit_filename] = (tunit, build_flags, mtime,)
 
-    def update(self, tunit_filename, tunit, mtime):
-        curr_tunit, curr_mtime = self.tunit[tunit_filename]
-        curr_tunit = tunit
-        curr_mtime = mtime
+    def update(self, tunit_filename, tunit, build_flags, mtime):
+        del self.tunit[tunit_filename]
+        self.insert(tunit_filename, tunit, build_flags, mtime)
 
     def iterkeys(self):
         return self.tunit.iterkeys()
