@@ -120,7 +120,7 @@ class ClangParser():
                 build_flags
             )
             if tunit:
-                self.tunit_cache.insert(original_filename, tunit, build_flags, os.path.getmtime(tunit.spelling))
+                self.tunit_cache.insert(original_filename, tunit, build_flags, os.path.getmtime(original_filename))
         else:
             logging.info('TUnit found in cache!')
             if original_filename != contents_filename:
