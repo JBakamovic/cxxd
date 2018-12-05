@@ -78,19 +78,16 @@ class ClangIndexer(object):
     def __run_on_single_file(self, id, args):
         success = False
         if self.symbol_db_exists():
-            original_filename = str(args[0])
-            contents_filename = str(args[1])
-            if not CxxdConfigParser.is_file_blacklisted(self.blacklisted_directories, original_filename):
-                if contents_filename == original_filename: # Files modified but not saved will _NOT_ get indexed
-                    self.symbol_db.open(self.symbol_db_path)
-                    self.symbol_db.delete_entry(remove_root_dir_from_filename(self.root_directory, original_filename))
-                    success = index_single_file(
-                        self.parser,
-                        self.root_directory,
-                        contents_filename,
-                        original_filename,
-                        self.symbol_db
-                    )
+            filename = str(args[0])
+            if not CxxdConfigParser.is_file_blacklisted(self.blacklisted_directories, filename):
+                self.symbol_db.open(self.symbol_db_path)
+                self.symbol_db.delete_entry(remove_root_dir_from_filename(self.root_directory, filename))
+                success = index_single_file(
+                    self.parser,
+                    self.root_directory,
+                    filename,
+                    self.symbol_db
+                )
                     # TODO what if index_single_file() fails? we should revert the symbol_db.delete_entry() back
             else:
                 logging.warning('Indexing will not take place on existing files whose contents were modified but not saved.')
@@ -264,7 +261,7 @@ def index_file_list(root_directory, input_filename_list, compiler_args_filename,
     parser = ClangParser(compiler_args_filename, TranslationUnitCache(NoCache()))
     with open(input_filename_list, 'r') as input_list:
         for filename in input_list.readlines():
-            index_single_file(parser, root_directory, filename.strip(), filename.strip(), symbol_db)
+            index_single_file(parser, root_directory, filename.strip(), symbol_db)
     symbol_db.close()
 
 def indexer_visitor(ast_node, ast_parent_node, args):
@@ -293,14 +290,14 @@ def indexer_visitor(ast_node, ast_parent_node, args):
         return ChildVisitResult.RECURSE.value  # If we are positioned in TU of interest, then we'll traverse through all descendants
     return ChildVisitResult.CONTINUE.value  # Otherwise, we'll skip to the next sibling
 
-def index_single_file(parser, root_directory, contents_filename, original_filename, symbol_db):
-    logging.info("Indexing a file '{0}' ... ".format(original_filename))
-    tunit = parser.parse(contents_filename, original_filename)
+def index_single_file(parser, root_directory, filename, symbol_db):
+    logging.info("Indexing a file '{0}' ... ".format(filename))
+    tunit = parser.parse(filename, filename)
     if tunit:
         parser.traverse(tunit.cursor, [parser, symbol_db, root_directory], indexer_visitor)
         store_tunit_diagnostics(tunit.diagnostics, symbol_db, root_directory)
         symbol_db.flush()
-    logging.info("Indexing of {0} completed.".format(original_filename))
+    logging.info("Indexing of {0} completed.".format(filename))
     return tunit is not None
 
 def store_tunit_diagnostics(diagnostics, symbol_db, root_directory):

@@ -142,7 +142,7 @@ class CxxdIntegrationTest(unittest.TestCase):
         self.assertTrue(self.source_code_model_cb_result['indexer'].status)
 
     def test_source_code_model_indexer_run_on_single_file(self):
-        cxxd.api.source_code_model_indexer_run_on_single_file_request(self.handle, self.fut, self.fut)
+        cxxd.api.source_code_model_indexer_run_on_single_file_request(self.handle, self.fut)
         self.source_code_model_cb_result.wait_until_available()
         self.assertTrue(self.source_code_model_cb_result['indexer'].status)
 
