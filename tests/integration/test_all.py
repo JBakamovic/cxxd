@@ -116,6 +116,7 @@ class CxxdIntegrationTest(unittest.TestCase):
         cxxd.api.server_stop(cls.handle)
         os.remove(cls.log_file)
         cls.profiling_stats.sort(key=lambda stat: stat.total_tt) # Sort profiling stats by total time
+        cls.profiling_stats.sort(key=lambda stat: stat.total_tt) # Sort profiling stats by total time
         for stat in cls.profiling_stats: # Dump the profiling stats we collected.
             stat.sort_stats('cumtime').print_stats()
 
