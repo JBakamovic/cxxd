@@ -1,8 +1,8 @@
 import cProfile
 import os
 import pstats
-import sys
 import shutil
+import sys
 import unittest
 
 import cxxd.api
@@ -115,7 +115,7 @@ class CxxdIntegrationTest(unittest.TestCase):
             assert cls.source_code_model_cb_result['indexer'].status == True # can't use unittest asserts here ...
         cxxd.api.server_stop(cls.handle)
         os.remove(cls.log_file)
-        cls.profiling_stats.sort(key=lambda stat: stat.total_tt) # Sort profiling stats by total time
+        os.remove(cls.fut_cpp_edited)
         cls.profiling_stats.sort(key=lambda stat: stat.total_tt) # Sort profiling stats by total time
         for stat in cls.profiling_stats: # Dump the profiling stats we collected.
             stat.sort_stats('cumtime').print_stats()
