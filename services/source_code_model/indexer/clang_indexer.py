@@ -50,6 +50,8 @@ class ClangIndexer(object):
             SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES   : self.__find_all_references,
             SourceCodeModelIndexerRequestId.FETCH_ALL_DIAGNOSTICS : self.__fetch_all_diagnostics,
         }
+        self.recognized_file_extensions = ['.cpp', '.cc', '.cxx', '.c', '.h', '.hh', '.hpp', 'hxx']
+        self.extra_file_extensions = self.cxxd_config_parser.get_extra_file_extensions()
         self.blacklisted_directories = self.cxxd_config_parser.get_blacklisted_directories()
 
     def symbol_db_exists(self):
@@ -111,7 +113,7 @@ class ClangIndexer(object):
             self.symbol_db.create_data_model()
 
             # Build-up a list of source code files from given project directory
-            cpp_file_list = get_cpp_file_list(self.root_directory, self.blacklisted_directories)
+            cpp_file_list = get_cpp_file_list(self.root_directory, self.blacklisted_directories, self.recognized_file_extensions + self.extra_file_extensions)
 
             indexing_subprocess_list = []
             symbol_db_list = []
@@ -338,12 +340,12 @@ def get_clang_index_path():
     this_script_directory = os.path.dirname(os.path.realpath(__file__))
     return os.path.join(this_script_directory, 'clang_index.py')
 
-def get_cpp_file_list(root_directory, blacklisted_directories):
+def get_cpp_file_list(root_directory, blacklisted_directories, recognized_file_extensions):
     cpp_file_list = []
     for dirpath, dirs, files in os.walk(root_directory):
         for filename in files:
             name, extension = os.path.splitext(filename)
-            if extension in ['.cpp', '.cc', '.cxx', '.c', '.h', '.hh', '.hpp']:
+            if extension in recognized_file_extensions:
                 if not CxxdConfigParser.is_file_blacklisted(blacklisted_directories, filename):
                     cpp_file_list.append(os.path.join(dirpath, filename))
     return cpp_file_list

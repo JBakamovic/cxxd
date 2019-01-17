@@ -159,6 +159,9 @@ TabWidth: 4                             \n\
             "test",                             \n\
             "CMake",                            \n\
             "CMakeFiles"                        \n\
+         ],                                     \n\
+        "extra-file-extensions": [              \n\
+            ".txx"                              \n\
          ]                                      \n\
     },                                          \n\
     "clang-tidy" : {                            \n\
@@ -191,6 +194,8 @@ TabWidth: 4                             \n\
 {                                               \n\
     "indexer" : {                               \n\
         "exclude-dirs": [                       \n\
+         ],                                     \n\
+        "extra-file-extensions": [              \n\
          ]                                      \n\
     },                                          \n\
     "clang-tidy" : {                            \n\

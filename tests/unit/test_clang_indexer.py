@@ -186,7 +186,7 @@ class ClangIndexerTest(unittest.TestCase):
                         success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY])
         mock_symbol_db_open.assert_called_once_with(self.service.symbol_db_path)
         mock_symbol_db_create_data_model.assert_called_once()
-        mock_get_cpp_file_list.assert_called_once_with(self.service.root_directory, self.service.blacklisted_directories)
+        mock_get_cpp_file_list.assert_called_once_with(self.service.root_directory, self.service.blacklisted_directories, self.service.recognized_file_extensions + self.service.extra_file_extensions)
         self.assertEqual(success, True)
         self.assertEqual(args, None)
 
@@ -198,7 +198,7 @@ class ClangIndexerTest(unittest.TestCase):
                         success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY])
         mock_symbol_db_open.assert_called_once_with(self.service.symbol_db_path)
         mock_symbol_db_create_data_model.assert_called_once()
-        mock_get_cpp_file_list.assert_called_once_with(self.service.root_directory, self.service.blacklisted_directories)
+        mock_get_cpp_file_list.assert_called_once_with(self.service.root_directory, self.service.blacklisted_directories, self.service.recognized_file_extensions + self.service.extra_file_extensions)
         self.assertEqual(success, True)
         self.assertEqual(args, None)
 
@@ -222,7 +222,7 @@ class ClangIndexerTest(unittest.TestCase):
                             success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY])
         mock_symbol_db_open.assert_called_once_with(self.service.symbol_db_path)
         mock_symbol_db_create_data_model.assert_called_once()
-        mock_get_cpp_file_list.assert_called_once_with(self.service.root_directory, self.service.blacklisted_directories)
+        mock_get_cpp_file_list.assert_called_once_with(self.service.root_directory, self.service.blacklisted_directories, self.service.recognized_file_extensions + self.service.extra_file_extensions)
         mock_slice_it.assert_called_once_with(cpp_file_list, len(cpp_file_list)/multiprocessing.cpu_count())
         mock_create_indexer_input_list_file.assert_called_with(self.service.root_directory, mock.ANY, mock_slice_it.return_value[len(cpp_file_list_chunks)-1])
         mock_create_empty_symbol_db.assert_called_with(self.service.root_directory, self.service.symbol_db_name)
@@ -660,7 +660,7 @@ class ClangIndexerTest(unittest.TestCase):
         os_walk_dir_list = (self.root_directory)
         os_walk_file_list = ('/tmp/a.cpp', '/tmp/b.cc', '/tmp/c.cxx', '/tmp/d.c', '/tmp/e.h', '/tmp/f.hh', '/tmp/g.hpp')
         with mock.patch('os.walk', return_value=[(self.root_directory, os_walk_dir_list, os_walk_file_list),]) as mock_os_walk:
-            cpp_list = get_cpp_file_list(self.root_directory, blacklisted_directories)
+            cpp_list = get_cpp_file_list(self.root_directory, blacklisted_directories, self.service.recognized_file_extensions + self.service.extra_file_extensions)
         mock_os_walk.assert_called_once_with(self.root_directory)
         self.assertEqual(len(os_walk_file_list), len(cpp_list))
 
@@ -669,7 +669,7 @@ class ClangIndexerTest(unittest.TestCase):
         os_walk_dir_list = (self.root_directory)
         os_walk_file_list = ('/tmp/a.md', '/tmp/b.txt', '/tmp/c.json')
         with mock.patch('os.walk', return_value=[(self.root_directory, os_walk_dir_list, os_walk_file_list),]) as mock_os_walk:
-            cpp_list = get_cpp_file_list(self.root_directory, blacklisted_directories)
+            cpp_list = get_cpp_file_list(self.root_directory, blacklisted_directories, self.service.recognized_file_extensions + self.service.extra_file_extensions)
         mock_os_walk.assert_called_once_with(self.root_directory)
         self.assertEqual(0, len(cpp_list))
 
@@ -678,7 +678,7 @@ class ClangIndexerTest(unittest.TestCase):
         os_walk_dir_list = (self.root_directory)
         os_walk_file_list = ()
         with mock.patch('os.walk', return_value=[(self.root_directory, os_walk_dir_list, os_walk_file_list),]) as mock_os_walk:
-            cpp_list = get_cpp_file_list(self.root_directory, blacklisted_directories)
+            cpp_list = get_cpp_file_list(self.root_directory, blacklisted_directories, self.service.recognized_file_extensions + self.service.extra_file_extensions)
         mock_os_walk.assert_called_once_with(self.root_directory)
         self.assertEqual(0, len(cpp_list))
 
@@ -687,9 +687,19 @@ class ClangIndexerTest(unittest.TestCase):
         os_walk_dir_list = (self.root_directory)
         os_walk_file_list = ('/home/1.cpp', '/home/2.cpp', '/home/3.cpp', '/tmp/4.cpp')
         with mock.patch('os.walk', return_value=[(self.root_directory, os_walk_dir_list, os_walk_file_list),]) as mock_os_walk:
-            cpp_list = get_cpp_file_list(self.root_directory, blacklisted_directories)
+            cpp_list = get_cpp_file_list(self.root_directory, blacklisted_directories, self.service.recognized_file_extensions + self.service.extra_file_extensions)
         mock_os_walk.assert_called_once_with(self.root_directory)
         self.assertEqual(len(os_walk_file_list)-1, len(cpp_list))
+
+    def test_if_get_cpp_file_list_returns_files_with_non_standard_extension(self):
+        blacklisted_directories = []
+        extra_file_extensions = ['.ic', '.i', '.tcc', '.txx']
+        os_walk_dir_list = (self.root_directory)
+        os_walk_file_list = ('/tmp/a.cpp', '/tmp/b.ic', '/tmp/c.i', '/tmp/d.tcc', '/tmp/e.txx')
+        with mock.patch('os.walk', return_value=[(self.root_directory, os_walk_dir_list, os_walk_file_list),]) as mock_os_walk:
+            cpp_list = get_cpp_file_list(self.root_directory, blacklisted_directories, self.service.recognized_file_extensions + extra_file_extensions)
+        mock_os_walk.assert_called_once_with(self.root_directory)
+        self.assertEqual(len(os_walk_file_list), len(cpp_list))
 
     def test_if_create_indexer_input_list_file_creates_a_file_containing_newline_separated_list_of_files_with_given_prefix_in_given_directory(self):
         input_list_prefix = 'input_list_0'

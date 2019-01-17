@@ -88,3 +88,6 @@ class TranslationUnitMock():
 class CxxdConfigParserMock():
     def get_blacklisted_directories(self):
         return []
+
+    def get_extra_file_extensions(self):
+        return []

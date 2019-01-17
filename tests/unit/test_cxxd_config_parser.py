@@ -24,6 +24,9 @@ class CxxdConfigParserTest(unittest.TestCase):
     def test_if_cxxd_config_parser_returns_empty_blacklisted_dir_list_for_inexisting_cxxd_config_file(self):
         self.assertEqual(self.parser_with_inexisting_config_file.get_blacklisted_directories(), [])
 
+    def test_if_cxxd_config_parser_returns_empty_extra_file_extensions_list_for_inexisting_cxxd_config_file(self):
+        self.assertEqual(self.parser_with_inexisting_config_file.get_extra_file_extensions(), [])
+
     def test_if_cxxd_config_parser_returns_empty_clang_tidy_arg_list_for_inexisting_cxxd_config_file(self):
         self.assertEqual(self.parser_with_inexisting_config_file.get_clang_tidy_args(), [])
 
@@ -36,6 +39,9 @@ class CxxdConfigParserTest(unittest.TestCase):
     def test_if_cxxd_config_parser_returns_non_empty_blacklisted_dir_list_for_existing_cxxd_config_file_containing_some_blacklisted_dirs(self):
         self.assertNotEqual(self.parser.get_blacklisted_directories(), [])
 
+    def test_if_cxxd_config_parser_returns_non_empty_extra_file_extensions_list_for_inexisting_cxxd_config_file(self):
+        self.assertNotEqual(self.parser.get_extra_file_extensions(), [])
+
     def test_if_cxxd_config_parser_returns_non_empty_clang_tidy_arg_list_for_existing_cxxd_config_file_containing_some_clang_tidy_args(self):
         self.assertNotEqual(self.parser.get_clang_tidy_args(), [])
 
@@ -47,6 +53,9 @@ class CxxdConfigParserTest(unittest.TestCase):
 
     def test_if_cxxd_config_parser_returns_empty_blacklisted_dir_list_for_existing_cxxd_config_file_which_does_not_contain_any_blacklisted_dirs(self):
         self.assertEqual(self.parser_with_empty_config_file.get_blacklisted_directories(), [])
+
+    def test_if_cxxd_config_parser_returns_non_empty_extra_file_extensions_list_for_inexisting_cxxd_config_file(self):
+        self.assertEqual(self.parser_with_empty_config_file.get_extra_file_extensions(), [])
 
     def test_if_cxxd_config_parser_returns_empty_clang_tidy_arg_list_for_existing_cxxd_config_file_which_does_not_contain_any_clang_tidy_args(self):
         self.assertEqual(self.parser_with_empty_config_file.get_clang_tidy_args(), [])
