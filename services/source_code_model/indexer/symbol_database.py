@@ -122,6 +122,14 @@ class SymbolDatabase(object):
             logging.error(sys.exc_info())
         return rows
 
+    def fetch_symbols_by_filename_and_kind(self, filename, symbol_kind_list):
+        rows = []
+        try:
+            rows = self.db_connection.cursor().execute('SELECT * FROM symbol WHERE filename=? AND kind IN (%s) ORDER BY kind' % ','.join('?'*len(symbol_kind_list)), tuple([filename] + symbol_kind_list)).fetchall()
+        except:
+            logging.error(sys.exc_info())
+        return rows
+
     def fetch_symbol_definition_by_usr(self, usr):
         rows = []
         try:
