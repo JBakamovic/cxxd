@@ -1,3 +1,4 @@
+import clang.cindex
 import linecache
 import logging
 import multiprocessing
@@ -25,6 +26,7 @@ class SourceCodeModelIndexerRequestId():
     DROP_ALL                  = 0x3
     FIND_ALL_REFERENCES       = 0x10
     FETCH_ALL_DIAGNOSTICS     = 0x11
+    FETCH_SYMBOLS             = 0x12
 
 class ClangIndexer(object):
     supported_ast_node_ids = [
@@ -49,6 +51,7 @@ class ClangIndexer(object):
             SourceCodeModelIndexerRequestId.DROP_ALL              : self.__drop_all,
             SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES   : self.__find_all_references,
             SourceCodeModelIndexerRequestId.FETCH_ALL_DIAGNOSTICS : self.__fetch_all_diagnostics,
+            SourceCodeModelIndexerRequestId.FETCH_SYMBOLS         : self.__fetch_symbols,
         }
         self.recognized_file_extensions = ['.cpp', '.cc', '.cxx', '.c', '.h', '.hh', '.hpp', 'hxx']
         self.extra_file_extensions = self.cxxd_config_parser.get_extra_file_extensions()
@@ -257,6 +260,35 @@ class ClangIndexer(object):
             logging.error('Action cannot be run if symbol database does not exist yet!')
         return db_exists, diagnostics
 
+    def __fetch_symbols(self, id, args):
+        symbols = []
+        db_exists = self.symbol_db_exists()
+        if db_exists:
+            self.symbol_db.open(self.symbol_db_path)
+            logging.info(args[0])
+            for symbol in self.symbol_db.fetch_symbols_by_filename_and_kind(remove_root_dir_from_filename(self.root_directory, args[0]), [
+                        clang.cindex.CursorKind.CLASS_DECL.value, clang.cindex.CursorKind.CLASS_TEMPLATE.value, clang.cindex.CursorKind.CLASS_TEMPLATE_PARTIAL_SPECIALIZATION.value,
+                        clang.cindex.CursorKind.STRUCT_DECL.value, clang.cindex.CursorKind.ENUM_DECL.value, clang.cindex.CursorKind.UNION_DECL.value,
+                        clang.cindex.CursorKind.FUNCTION_DECL.value, clang.cindex.CursorKind.FUNCTION_TEMPLATE.value,
+                        clang.cindex.CursorKind.CXX_METHOD.value, clang.cindex.CursorKind.CONSTRUCTOR.value, clang.cindex.CursorKind.DESTRUCTOR.value,
+                        clang.cindex.CursorKind.MACRO_DEFINITION.value,
+                        clang.cindex.CursorKind.TYPEDEF_DECL.value, clang.cindex.CursorKind.TYPE_ALIAS_DECL.value,
+                        clang.cindex.CursorKind.NAMESPACE_ALIAS.value,
+                        clang.cindex.CursorKind.USING_DIRECTIVE.value,
+                        clang.cindex.CursorKind.USING_DECLARATION.value,
+                    ]
+                ):
+                symbols.append([
+                    os.path.join(self.root_directory, self.symbol_db.get_symbol_filename(symbol)),
+                    self.symbol_db.get_symbol_usr(symbol),
+                    self.symbol_db.get_symbol_line(symbol),
+                    self.symbol_db.get_symbol_column(symbol),
+                    self.symbol_db.get_symbol_kind(symbol)
+                ])
+            logging.info("\n{0}".format('\n'.join(str(symbol) for symbol in symbols)))
+        else:
+            logging.error('Action cannot be run if symbol database does not exist yet!')
+        return db_exists, symbols
 
 def index_file_list(root_directory, input_filename_list, compiler_args_filename, output_db_filename):
     symbol_db = SymbolDatabase(output_db_filename)
