@@ -122,6 +122,9 @@ def source_code_model_indexer_find_all_references_request(handle, filename, line
 def source_code_model_indexer_fetch_all_diagnostics_request(handle, sorting_strategy):
     _indexer_request(handle, SourceCodeModelIndexerRequestId.FETCH_ALL_DIAGNOSTICS, sorting_strategy)
 
+def source_code_model_indexer_fetch_symbols_request(handle, filename):
+    _indexer_request(handle, SourceCodeModelIndexerRequestId.FETCH_SYMBOLS, filename)
+
 #
 # Project builder service API
 #
