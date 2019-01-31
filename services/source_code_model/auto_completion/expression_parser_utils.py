@@ -97,6 +97,13 @@ def is_paren(c):
 def is_single_line_comment(line_string):
     return line_string.find("//") >= 0
 
+def is_multi_line_comment(line_string, char_idx):
+    end_comment_idx = line_string.find("*/")
+    if end_comment_idx >= 0: # end-comment pattern found
+        return char_idx < end_comment_idx # in which case we have to check if our char_idx belongs to a comment or not
+    else:
+        return line_string.find("/*") >= 0
+
 def last_occurence_of_non_identifier(string):
     for idx, char in enumerate(string[::-1]):
         if not is_identifier(char):
