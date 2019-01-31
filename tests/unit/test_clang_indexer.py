@@ -79,7 +79,7 @@ class ClangIndexerTest(unittest.TestCase):
     def test_if_run_on_single_file_skips_indexing_if_symbol_db_is_inexisting(self):
         with mock.patch.object(self.service, 'symbol_db_exists', return_value=False):
             with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file') as mock_index_single_file:
-                success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file_edited.name])
+                success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name])
         mock_index_single_file.assert_not_called()
         self.assertEqual(success, False)
         self.assertEqual(args, None)
@@ -88,16 +88,8 @@ class ClangIndexerTest(unittest.TestCase):
         self.service.blacklisted_directories.append(os.path.dirname(self.test_file.name))
         with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
             with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file') as mock_index_single_file:
-                success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file.name])
+                success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name])
         self.service.blacklisted_directories.pop()
-        mock_index_single_file.assert_not_called()
-        self.assertEqual(success, False)
-        self.assertEqual(args, None)
-
-    def test_if_run_on_single_file_skips_indexing_when_file_is_edited(self):
-        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
-            with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file') as mock_index_single_file:
-                success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file_edited.name])
         mock_index_single_file.assert_not_called()
         self.assertEqual(success, False)
         self.assertEqual(args, None)
@@ -113,13 +105,13 @@ class ClangIndexerTest(unittest.TestCase):
                             manager.attach_mock(mock_symbol_db_delete_entry, 'mock_symbol_db_delete_entry')
                             manager.attach_mock(mock_remove_root_dir_from_filename, 'mock_remove_root_dir_from_filename')
                             manager.attach_mock(mock_index_single_file, 'mock_index_single_file')
-                            success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file.name])
+                            success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name])
         manager.assert_has_calls(
             [
                 mock.call.mock_symbol_db_open(self.service.symbol_db_path),
                 mock.call.mock_remove_root_dir_from_filename(self.root_directory, self.test_file.name),
                 mock.call.mock_symbol_db_delete_entry(mock_remove_root_dir_from_filename.return_value),
-                mock.call.mock_index_single_file(self.service.parser, self.service.root_directory, self.test_file.name, self.test_file.name, self.service.symbol_db)
+                mock.call.mock_index_single_file(self.service.parser, self.service.root_directory, self.test_file.name, self.service.symbol_db)
             ]
         )
         self.assertEqual(success, True)
@@ -136,13 +128,13 @@ class ClangIndexerTest(unittest.TestCase):
                             manager.attach_mock(mock_symbol_db_delete_entry, 'mock_symbol_db_delete_entry')
                             manager.attach_mock(mock_remove_root_dir_from_filename, 'mock_remove_root_dir_from_filename')
                             manager.attach_mock(mock_index_single_file, 'mock_index_single_file')
-                            success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file.name])
+                            success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name])
             manager.assert_has_calls(
                 [
                     mock.call.mock_symbol_db_open(self.service.symbol_db_path),
                     mock.call.mock_remove_root_dir_from_filename(self.root_directory, self.test_file.name),
                     mock.call.mock_symbol_db_delete_entry(mock_remove_root_dir_from_filename.return_value),
-                    mock.call.mock_index_single_file(self.service.parser, self.service.root_directory, self.test_file.name, self.test_file.name, self.service.symbol_db)
+                    mock.call.mock_index_single_file(self.service.parser, self.service.root_directory, self.test_file.name, self.service.symbol_db)
                 ]
             )
         self.assertEqual(success, False)
@@ -478,31 +470,31 @@ class ClangIndexerTest(unittest.TestCase):
             [
                 mock.call.mock_index_single_file(
                     mock.ANY, self.root_directory,
-                    input_filename_list[0], input_filename_list[0], mock.ANY
+                    input_filename_list[0], mock.ANY
                 ),
                 mock.call.mock_index_single_file(
                     mock.ANY, self.root_directory,
-                    input_filename_list[1], input_filename_list[1], mock.ANY
+                    input_filename_list[1], mock.ANY
                 ),
                 mock.call.mock_index_single_file(
                     mock.ANY, self.root_directory,
-                    input_filename_list[2], input_filename_list[2], mock.ANY
+                    input_filename_list[2], mock.ANY
                 ),
                 mock.call.mock_index_single_file(
                     mock.ANY, self.root_directory,
-                    input_filename_list[3], input_filename_list[3], mock.ANY
+                    input_filename_list[3], mock.ANY
                 ),
                 mock.call.mock_index_single_file(
                     mock.ANY, self.root_directory,
-                    input_filename_list[4], input_filename_list[4], mock.ANY
+                    input_filename_list[4], mock.ANY
                 ),
                 mock.call.mock_index_single_file(
                     mock.ANY, self.root_directory,
-                    input_filename_list[5], input_filename_list[5], mock.ANY
+                    input_filename_list[5], mock.ANY
                 ),
                 mock.call.mock_index_single_file(
                     mock.ANY, self.root_directory,
-                    input_filename_list[6], input_filename_list[6], mock.ANY
+                    input_filename_list[6], mock.ANY
                 )
             ]
         )
@@ -514,7 +506,7 @@ class ClangIndexerTest(unittest.TestCase):
             with mock.patch.object(self.parser, 'traverse') as mock_parser_traverse:
                 with mock.patch('services.source_code_model.indexer.clang_indexer.store_tunit_diagnostics') as mock_store_tunit_diagnostics:
                     with mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.flush') as mock_symbol_db_flush:
-                        ret = index_single_file(self.parser, os.path.dirname(self.test_file.name), self.test_file.name, self.test_file.name, symbol_db)
+                        ret = index_single_file(self.parser, os.path.dirname(self.test_file.name), self.test_file.name, symbol_db)
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_traverse.assert_called_once_with(mock_parser_parse.return_value.cursor, [self.parser, symbol_db, self.root_directory], indexer_visitor)
         mock_store_tunit_diagnostics.assert_called_once_with(mock_parser_parse.return_value.diagnostics, symbol_db, self.root_directory)
@@ -527,7 +519,7 @@ class ClangIndexerTest(unittest.TestCase):
             with mock.patch.object(self.parser, 'traverse') as mock_parser_traverse:
                 with mock.patch('services.source_code_model.indexer.clang_indexer.store_tunit_diagnostics') as mock_store_tunit_diagnostics:
                     with mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.flush') as mock_symbol_db_flush:
-                        ret = index_single_file(self.parser, os.path.dirname(self.test_file.name), self.test_file.name, self.test_file.name, symbol_db)
+                        ret = index_single_file(self.parser, os.path.dirname(self.test_file.name), self.test_file.name, symbol_db)
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_traverse.assert_not_called()
         mock_store_tunit_diagnostics.assert_not_called()
