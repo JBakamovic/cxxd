@@ -64,6 +64,13 @@ class AutoCompletion():
                 self.__drop_completion_candidate_list()
             elif is_semicolon(current_char):
                 self.__drop_completion_candidate_list()
+            elif is_single_line_comment(line_string[:curr_char_idx]):
+                self.__drop_completion_candidate_list()
+            elif is_multi_line_comment(line_string[:curr_char_idx], curr_char_idx):
+                self.__drop_completion_candidate_list()
+            # TODO  Detecting that we are in the middle of multi-line comment is a bit more difficult task
+            #       We would have to search accross multiple lines to be able to deduce that we are in the
+            #       middle of multi-line comment. That doesn't seem very optimal in this particular use-case.
             elif is_whitespace(current_char):
                 self.__drop_completion_candidate_list()
             elif is_opening_paren(current_char) or is_closing_paren(current_char):
