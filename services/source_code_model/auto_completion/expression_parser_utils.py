@@ -94,6 +94,9 @@ def is_closing_paren(c):
 def is_paren(c):
     return is_opening_paren(c) or is_closing_paren(c)
 
+def is_single_line_comment(line_string):
+    return line_string.find("//") >= 0
+
 def last_occurence_of_non_identifier(string):
     for idx, char in enumerate(string[::-1]):
         if not is_identifier(char):
