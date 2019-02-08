@@ -1047,18 +1047,16 @@ int main() {                                \n\
         candidates = mock.MagicMock(clang.cindex.CodeCompletionResults)
         type(candidates).results = [candidate_0, candidate_1]
 
-        with mock.patch.object(self.service, '_AutoCompletion__get_auto_completion_candidates', return_value=candidates) as mock_get_auto_completion_candidates:
-            with mock.patch.object(self.service, '_AutoCompletion__filter_completion_candidates', return_value=candidates.results) as mock_filter_completion_candidates:
-                line, column = 5, 19
-                success, completion_candidates = self.service([
-                    SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
-                    self.fd.name, self.fd.name,
-                    line,
-                    column,
-                    self.line_to_byte(45, line),
-                    AutoCompletionSortingAlgorithmId.BY_PRIORITY
-                ])
-        mock_get_auto_completion_candidates.assert_called_once()
+        with mock.patch.object(self.service, '_AutoCompletion__filter_completion_candidates', return_value=candidates.results) as mock_filter_completion_candidates:
+            line, column = 5, 19
+            success, completion_candidates = self.service([
+                SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+                self.fd.name, self.fd.name,
+                line,
+                column,
+                self.line_to_byte(45, line),
+                AutoCompletionSortingAlgorithmId.BY_PRIORITY
+            ])
         mock_filter_completion_candidates.assert_called_once()
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 2)
@@ -1074,18 +1072,16 @@ int main() {                                \n\
 }                                           \n\
         ')
 
-        with mock.patch.object(self.service, '_AutoCompletion__get_auto_completion_candidates', return_value=candidates) as mock_get_auto_completion_candidates:
-            with mock.patch.object(self.service, '_AutoCompletion__filter_completion_candidates', return_value=candidates.results[0:1]) as mock_filter_completion_candidates:
-                line, column = 5, 20
-                success, completion_candidates = self.service([
-                    SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
-                    self.fd.name, self.fd.name,
-                    line,
-                    column,
-                    self.line_to_byte(45, line),
-                    AutoCompletionSortingAlgorithmId.BY_PRIORITY
-                ])
-        mock_get_auto_completion_candidates.assert_not_called()
+        with mock.patch.object(self.service, '_AutoCompletion__filter_completion_candidates', return_value=candidates.results[0:1]) as mock_filter_completion_candidates:
+            line, column = 5, 20
+            success, completion_candidates = self.service([
+                SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+                self.fd.name, self.fd.name,
+                line,
+                column,
+                self.line_to_byte(45, line),
+                AutoCompletionSortingAlgorithmId.BY_PRIORITY
+            ])
         mock_filter_completion_candidates.assert_called_once()
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 1)
@@ -1101,18 +1097,16 @@ int main() {                                \n\
 }                                           \n\
         ')
 
-        with mock.patch.object(self.service, '_AutoCompletion__get_auto_completion_candidates', return_value=candidates) as mock_get_auto_completion_candidates:
-            with mock.patch.object(self.service, '_AutoCompletion__filter_completion_candidates', return_value=candidates.results) as mock_filter_completion_candidates:
-                line, column = 5, 19
-                success, completion_candidates = self.service([
-                    SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
-                    self.fd.name, self.fd.name,
-                    line,
-                    column,
-                    self.line_to_byte(45, line),
-                    AutoCompletionSortingAlgorithmId.BY_PRIORITY
-                ])
-        mock_get_auto_completion_candidates.assert_not_called()
+        with mock.patch.object(self.service, '_AutoCompletion__filter_completion_candidates', return_value=candidates.results) as mock_filter_completion_candidates:
+            line, column = 5, 19
+            success, completion_candidates = self.service([
+                SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+                self.fd.name, self.fd.name,
+                line,
+                column,
+                self.line_to_byte(45, line),
+                AutoCompletionSortingAlgorithmId.BY_PRIORITY
+            ])
         mock_filter_completion_candidates.assert_called_once()
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 2)
