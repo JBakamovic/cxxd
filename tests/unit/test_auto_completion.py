@@ -524,6 +524,25 @@ int main() {                                \n\
         self.assertEqual(success, True)
         self.assertNotEqual(len(completion_candidates), 0)
 
+    def test_if_call_returns_true_and_empty_candidate_list_when_inside_single_line_comment(self):
+        self.fd.write('\
+int main() {                                \n\
+    // com                                  \n\
+}                                           \n\
+        ')
+
+        line, column = 2, 10
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE,
+            self.fd.name, self.fd.name,
+            line,
+            column,
+            self.line_to_byte(45, line),
+            AutoCompletionSortingAlgorithmId.BY_PRIORITY
+        ])
+        self.assertEqual(success, True)
+        self.assertEqual(len(completion_candidates), 0)
+
     def test_if_call_returns_true_and_non_empty_candidate_list_for_member_access_via_dot_operator_and_array_subscript(self):
         self.fd.write('\
 struct P { int x; int y; };                 \n\
