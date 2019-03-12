@@ -1,4 +1,3 @@
-import distutils.spawn
 import logging
 import os
 import subprocess
@@ -15,7 +14,7 @@ class ClangTidy(cxxd.service.Service):
         self.clang_tidy_args = self._stringify_clang_tidy_args(
            self.cxxd_config_parser.get_clang_tidy_args()
         )
-        self.clang_tidy_binary = distutils.spawn.find_executable('clang-tidy')
+        self.clang_tidy_binary = self.cxxd_config_parser.get_clang_tidy_binary_path()
         self.clang_tidy_success_code = 0
         self.clang_tidy_output = None
 

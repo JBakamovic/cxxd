@@ -1,4 +1,3 @@
-import distutils.spawn
 import logging
 import os
 import subprocess
@@ -9,7 +8,7 @@ class ClangFormat(cxxd.service.Service):
         cxxd.service.Service.__init__(self, service_plugin)
         self.project_root_directory = project_root_directory
         self.cxxd_config_parser = cxxd_config_parser
-        self.clang_format_binary = distutils.spawn.find_executable('clang-format')
+        self.clang_format_binary = cxxd_config_parser.get_clang_format_binary_path()
         self.clang_format_args = self._stringify_clang_format_args(
             self.cxxd_config_parser.get_clang_format_args()
         )

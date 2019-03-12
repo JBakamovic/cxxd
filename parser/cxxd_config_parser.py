@@ -1,3 +1,4 @@
+import distutils.spawn
 import json
 import logging
 import os
@@ -7,7 +8,9 @@ class CxxdConfigParser():
         self.blacklisted_directories = []
         self.extra_file_extensions   = []
         self.clang_tidy_args         = []
+        self.clang_tidy_binary_path  = None
         self.clang_format_args       = []
+        self.clang_format_binary_path= None
         self.project_builder_args    = []
         if os.path.exists(cxxd_config_filename):
             with open(cxxd_config_filename) as f:
@@ -17,12 +20,20 @@ class CxxdConfigParser():
                 )
                 self.extra_file_extensions = self._extract_extra_file_extensions(config)
                 self.clang_tidy_args = self._extract_clang_tidy_args(config)
+                self.clang_tidy_binary_path = self._extract_clang_tidy_binary_path(config)
                 self.clang_format_args = self._extract_clang_format_args(config)
+                self.clang_format_binary_path = self._extract_clang_format_binary_path(config)
                 self.project_builder_args = self._extract_project_builder_args(config)
+        if not self.clang_tidy_binary_path:
+            self.clang_tidy_binary_path = self._find_system_wide_binary('clang-tidy')
+        if not self.clang_format_binary_path:
+            self.clang_format_binary_path = self._find_system_wide_binary('clang-format')
         logging.info('Indexer: Blacklisted directories {0}'.format(self.blacklisted_directories))
         logging.info('Indexer: Extra file extensions {0}'.format(self.extra_file_extensions))
         logging.info('Clang-tidy args {0}'.format(self.clang_tidy_args))
+        logging.info('Clang-tidy binary path {0}'.format(self.clang_tidy_binary_path))
         logging.info('Clang-format args {0}'.format(self.clang_format_args))
+        logging.info('Clang-format binary path {0}'.format(self.clang_format_binary_path))
         logging.info('Project-builder args {0}'.format(self.project_builder_args))
 
     def get_blacklisted_directories(self):
@@ -34,8 +45,14 @@ class CxxdConfigParser():
     def get_clang_tidy_args(self):
         return self.clang_tidy_args
 
+    def get_clang_tidy_binary_path(self):
+        return self.clang_tidy_binary_path
+
     def get_clang_format_args(self):
         return self.clang_format_args
+
+    def get_clang_format_binary_path(self):
+        return self.clang_format_binary_path
 
     def get_project_builder_args(self):
         return self.project_builder_args
@@ -46,6 +63,9 @@ class CxxdConfigParser():
             if filename.startswith(dir):
                 return True
         return False
+
+    def _find_system_wide_binary(self, binary_name):
+        return distutils.spawn.find_executable(binary_name)
 
     def _extract_blacklisted_directories(self, config, base_dir):
         dirs = []
@@ -69,6 +89,12 @@ class CxxdConfigParser():
                     args.append((arg, value),)
         return args
 
+    def _extract_clang_tidy_binary_path(self, config):
+        if 'clang-tidy' in config:
+            if 'binary' in config['clang-tidy']:
+                return config['clang-tidy']['binary']
+        return None
+
     def _extract_clang_format_args(self, config):
         args = []
         if 'clang-format' in config:
@@ -76,6 +102,12 @@ class CxxdConfigParser():
                 for arg, value in config['clang-format']['args'].iteritems():
                     args.append((arg, value),)
         return args
+
+    def _extract_clang_format_binary_path(self, config):
+        if 'clang-format' in config:
+            if 'binary' in config['clang-format']:
+                return config['clang-format']['binary']
+        return None
 
     def _extract_project_builder_args(self, config):
         args = []
