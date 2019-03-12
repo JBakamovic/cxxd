@@ -76,11 +76,31 @@ class ClangParser():
     def get_compiler_args_db(self):
         return self.compiler_args
 
-    def code_complete(self, contents_filename, original_filename, line, column, complete_macros=False, complete_lang_constructs=False):
+    def code_complete(self, contents_filename, original_filename, line, column, complete_macros=False, complete_lang_constructs=False, opts=None):
+        def do_parse(contents_filename, original_filename, build_flags):
+            try:
+                return self.index.parse(
+                    path = contents_filename,
+                    args = build_flags,
+                    options = self.default_parsing_flags() if opts is None else opts
+                )
+            except:
+                logging.error(sys.exc_info())
+
         # Check if TUnit is already cached. If not, we have to parse it first ...
         tunit, tunit_build_flags, tunit_timestamp = self.tunit_cache.fetch(original_filename)
         if tunit is None:
-            tunit = self.parse(contents_filename, original_filename)
+            build_flags = self.compiler_args.get(original_filename)
+            tunit = do_parse(
+                contents_filename,
+                original_filename,
+                build_flags
+            )
+            if tunit:
+                self.tunit_cache.insert(original_filename, tunit, build_flags, os.path.getmtime(original_filename))
+            else:
+                logging.error('Unable to parse TUnit!')
+
         # Now, trigger the code-complete on given TUnit ...
         with open(contents_filename) as f:
             return tunit.codeComplete(
