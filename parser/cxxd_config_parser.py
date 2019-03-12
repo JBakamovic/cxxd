@@ -48,26 +48,39 @@ class CxxdConfigParser():
         return False
 
     def _extract_blacklisted_directories(self, config, base_dir):
-        dirs = [os.path.join(base_dir, dir) for dir in config['indexer']['exclude-dirs']]
+        dirs = []
+        if 'indexer' in config:
+            if 'exclude-dirs' in config['indexer']:
+                dirs = [os.path.join(base_dir, dir) for dir in config['indexer']['exclude-dirs']]
         return dirs
 
     def _extract_extra_file_extensions(self, config):
-        return list(config['indexer']['extra-file-extensions'])
+        extensions = []
+        if 'indexer' in config:
+            if 'extra-file-extensions' in config['indexer']:
+                extensions = list(config['indexer']['extra-file-extensions'])
+        return extensions
 
     def _extract_clang_tidy_args(self, config):
         args = []
-        for arg, value in config['clang-tidy']['args'].iteritems():
-            args.append((arg, value),)
+        if 'clang-tidy' in config:
+            if 'args' in config['clang-tidy']:
+                for arg, value in config['clang-tidy']['args'].iteritems():
+                    args.append((arg, value),)
         return args
 
     def _extract_clang_format_args(self, config):
         args = []
-        for arg, value in config['clang-format']['args'].iteritems():
-            args.append((arg, value),)
+        if 'clang-format' in config:
+            if 'args' in config['clang-format']:
+                for arg, value in config['clang-format']['args'].iteritems():
+                    args.append((arg, value),)
         return args
 
     def _extract_project_builder_args(self, config):
         args = []
-        for arg, value in config['project-builder']['args'].iteritems():
-            args.append((arg, value),)
+        if 'project-builder' in config:
+            if 'args' in config['project-builder']:
+                for arg, value in config['project-builder']['args'].iteritems():
+                    args.append((arg, value),)
         return args
