@@ -19,9 +19,10 @@ class ClangFormat(cxxd.service.Service):
         for arg, value in args:
             if isinstance(value, bool):
                 if value:
-                    clang_format_args += arg + ' '
+                    clang_format_args += arg
             else:
                 clang_format_args += arg + '=' + value
+            clang_format_args += ' '
         return clang_format_args
 
     def startup_callback(self, args):

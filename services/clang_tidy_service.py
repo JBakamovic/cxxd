@@ -23,9 +23,10 @@ class ClangTidy(cxxd.service.Service):
         for arg, value in args:
             if isinstance(value, bool):
                 if value:
-                    clang_tidy_args += arg + ' '
+                    clang_tidy_args += arg
             else:
                 clang_tidy_args += arg + '=' + value
+            clang_tidy_args += ' '
         return clang_tidy_args
 
     def startup_callback(self, args):
