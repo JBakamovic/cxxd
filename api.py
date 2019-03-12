@@ -129,6 +129,18 @@ def source_code_model_auto_completion_code_complete_request(handle, filename, co
     _auto_completion_request(handle, SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE, filename, contents, line, col, offset, sorting_strategy)
 
 #
+# Code-completion service API
+#
+def code_completion_start(handle, json_compilation_database):
+    _server_start_service(handle, ServiceId.CODE_COMPLETION, json_compilation_database)
+
+def code_completion_stop(handle, subscribe_for_callback):
+    _server_stop_service(handle, ServiceId.CODE_COMPLETION, subscribe_for_callback)
+
+def code_complete_request(handle, filename, contents, line, col, offset, sorting_strategy):
+    _server_request_service(handle, ServiceId.CODE_COMPLETION, SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE, filename, contents, line, col, offset, sorting_strategy)
+
+#
 # Project builder service API
 #
 def project_builder_start(handle):
