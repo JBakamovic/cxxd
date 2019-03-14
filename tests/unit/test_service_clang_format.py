@@ -9,7 +9,8 @@ class ClangFormatTest(unittest.TestCase):
     def setUpClass(cls):
         cls.file_to_perform_clang_format_on = FileGenerator.gen_simple_cpp_file()
         cls.clang_format_config_file        = FileGenerator.gen_clang_format_config_file()
-        cls.cxxd_config                     = FileGenerator.gen_cxxd_config_filename()
+        cls.json_compilation_database       = FileGenerator.gen_json_compilation_database(cls.file_to_perform_clang_format_on.name)
+        cls.cxxd_config                     = FileGenerator.gen_cxxd_config_filename('debug', os.path.dirname(cls.json_compilation_database.name))
         cls.project_root_directory          = os.path.dirname(cls.file_to_perform_clang_format_on.name)
 
     @classmethod
@@ -21,7 +22,7 @@ class ClangFormatTest(unittest.TestCase):
     def setUp(self):
         import cxxd_mocks
         from services.clang_format_service import ClangFormat
-        self.service = ClangFormat(self.project_root_directory, CxxdConfigParser(self.cxxd_config.name), cxxd_mocks.ServicePluginMock())
+        self.service = ClangFormat(self.project_root_directory, CxxdConfigParser(self.cxxd_config.name, self.project_root_directory), cxxd_mocks.ServicePluginMock())
 
     def test_if_clang_format_binary_is_available_on_the_system_path(self):
         self.assertNotEqual(self.service.clang_format_binary, None)

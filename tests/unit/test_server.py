@@ -1,20 +1,32 @@
 import mock
 import multiprocessing
+import tempfile
 import unittest
 
 import api
 import cxxd_mocks
 import server
+from file_generator import FileGenerator
 
 class ServerTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.project_root_directory        = tempfile.gettempdir()
+        cls.json_compilation_database     = FileGenerator.gen_json_compilation_database('doesnt_matter.cpp')
+        cls.target                        = 'debug'
+
+    @classmethod
+    def tearDownClass(cls):
+        FileGenerator.close_gen_file(cls.json_compilation_database)
+
     def setUp(self):
         self.payload = [0x1, 0x2, 0x3]
         self.inexisting_service_id = 0xFF
-        self.project_root_directory = '/tmp'
         self.handle = multiprocessing.Queue()
         self.server = server.Server(
             self.handle,
             self.project_root_directory,
+            self.target,
             cxxd_mocks.ServicePluginMock(),
             cxxd_mocks.ServicePluginMock(),
             cxxd_mocks.ServicePluginMock(),

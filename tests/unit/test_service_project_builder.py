@@ -7,9 +7,10 @@ from parser.cxxd_config_parser import CxxdConfigParser
 class ProjectBuilderTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.file_to_be_built = FileGenerator.gen_simple_cpp_file()
-        cls.cxxd_config      = FileGenerator.gen_cxxd_config_filename()
-        cls.project_root_directory = os.path.dirname(cls.file_to_be_built.name)
+        cls.file_to_be_built          = FileGenerator.gen_simple_cpp_file()
+        cls.json_compilation_database = FileGenerator.gen_json_compilation_database('doesnt_matter.cpp')
+        cls.cxxd_config               = FileGenerator.gen_cxxd_config_filename('debug', os.path.dirname(cls.json_compilation_database.name))
+        cls.project_root_directory    = os.path.dirname(cls.file_to_be_built.name)
 
     @classmethod
     def tearDownClass(cls):
@@ -19,7 +20,7 @@ class ProjectBuilderTest(unittest.TestCase):
     def setUp(self):
         import cxxd_mocks
         from services.project_builder_service import ProjectBuilder
-        self.service = ProjectBuilder(self.project_root_directory, CxxdConfigParser(self.cxxd_config.name), cxxd_mocks.ServicePluginMock())
+        self.service = ProjectBuilder(self.project_root_directory, CxxdConfigParser(self.cxxd_config.name, self.project_root_directory), cxxd_mocks.ServicePluginMock())
         self.build_cmd = 'gcc -o {0}.o -c {1}'.format(self.file_to_be_built.name, self.file_to_be_built.name)
 
     def test_if_call_returns_true_for_success_file_containing_build_output_and_duration_when_run_on_existing_file(self):

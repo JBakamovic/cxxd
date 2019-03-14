@@ -20,44 +20,33 @@ class SourceCodeModelSubServiceId():
     GO_TO_INCLUDE             = 0x5
 
 class SourceCodeModel(cxxd.service.Service):
-    def __init__(self, project_root_directory, cxxd_config_parser, service_plugin):
+    def __init__(self, project_root_directory, cxxd_config_parser, target, service_plugin):
         cxxd.service.Service.__init__(self, service_plugin)
-        self.parser = None
-        self.service = None
         self.project_root_directory = project_root_directory
         self.cxxd_config_parser = cxxd_config_parser
+        self.parser = cxxd.parser.clang_parser.ClangParser(
+            cxxd_config_parser.get_configuration_for_target(target),
+            cxxd.parser.tunit_cache.TranslationUnitCache(cxxd.parser.tunit_cache.FifoCache(20))
+        )
+        self.clang_indexer = ClangIndexer(self.parser, self.project_root_directory, self.cxxd_config_parser)
+        self.service = {
+            SourceCodeModelSubServiceId.INDEXER                   : self.clang_indexer,
+            SourceCodeModelSubServiceId.SEMANTIC_SYNTAX_HIGHLIGHT : SemanticSyntaxHighlight(self.parser),
+            SourceCodeModelSubServiceId.DIAGNOSTICS               : Diagnostics(self.parser),
+            SourceCodeModelSubServiceId.TYPE_DEDUCTION            : TypeDeduction(self.parser),
+            SourceCodeModelSubServiceId.GO_TO_DEFINITION          : GoToDefinition(self.parser, self.clang_indexer.get_symbol_db(), self.project_root_directory),
+            SourceCodeModelSubServiceId.GO_TO_INCLUDE             : GoToInclude(self.parser)
+        }
 
     def __unknown_service(self, args):
         logging.error("Unknown service triggered! Valid services are: {0}".format(self.service))
         return False, None
 
     def startup_callback(self, args):
-        # Instantiate source-code-model services with Clang parser configured
-        compiler_args_filename = args[0]
-        if os.path.isdir(self.project_root_directory):
-            if os.path.isfile(compiler_args_filename):
-                self.parser        = cxxd.parser.clang_parser.ClangParser(
-                                        compiler_args_filename,
-                                        cxxd.parser.tunit_cache.TranslationUnitCache(cxxd.parser.tunit_cache.FifoCache(20))
-                                     )
-                self.clang_indexer = ClangIndexer(self.parser, self.project_root_directory, self.cxxd_config_parser)
-                self.service = {
-                    SourceCodeModelSubServiceId.INDEXER                   : self.clang_indexer,
-                    SourceCodeModelSubServiceId.SEMANTIC_SYNTAX_HIGHLIGHT : SemanticSyntaxHighlight(self.parser),
-                    SourceCodeModelSubServiceId.DIAGNOSTICS               : Diagnostics(self.parser),
-                    SourceCodeModelSubServiceId.TYPE_DEDUCTION            : TypeDeduction(self.parser),
-                    SourceCodeModelSubServiceId.GO_TO_DEFINITION          : GoToDefinition(self.parser, self.clang_indexer.get_symbol_db(), self.project_root_directory),
-                    SourceCodeModelSubServiceId.GO_TO_INCLUDE             : GoToInclude(self.parser)
-                }
-            else:
-                logging.error('File, \'{0}\', ought to provide compiler flags is not valid!'.format(compiler_args_filename))
-        else:
-            logging.error('Project root directory, \'{0}\', is not valid!'.format(self.project_root_directory))
+        pass
 
     def shutdown_callback(self, args):
         pass
 
     def __call__(self, args):
-        if self.parser and self.service:
-            return self.service.get(int(args[0]), self.__unknown_service)(args[1:len(args)])
-        return False, None
+        return self.service.get(int(args[0]), self.__unknown_service)(args[1:len(args)])

@@ -64,16 +64,10 @@ class Server():
             else:
                 logging.warning("Service process must be started before issuing any kind of requests!")
 
-    def __init__(self, handle, project_root_directory, source_code_model_plugin, project_builder_plugin, clang_format_plugin, clang_tidy_plugin):
+    def __init__(self, handle, project_root_directory, target, source_code_model_plugin, project_builder_plugin, clang_format_plugin, clang_tidy_plugin):
         self.handle = handle
         self.cxxd_config_filename = '.cxxd_config.json'
-        self.cxxd_config_parser = CxxdConfigParser(os.path.join(project_root_directory, self.cxxd_config_filename))
-        self.service = {
-            ServiceId.SOURCE_CODE_MODEL : self.ServiceHandler(SourceCodeModel(project_root_directory, self.cxxd_config_parser, source_code_model_plugin)),
-            ServiceId.PROJECT_BUILDER   : self.ServiceHandler(ProjectBuilder(project_root_directory, self.cxxd_config_parser, project_builder_plugin)),
-            ServiceId.CLANG_FORMAT      : self.ServiceHandler(ClangFormat(project_root_directory, self.cxxd_config_parser, clang_format_plugin)),
-            ServiceId.CLANG_TIDY        : self.ServiceHandler(ClangTidy(project_root_directory, self.cxxd_config_parser, clang_tidy_plugin)),
-        }
+        self.cxxd_config_parser = CxxdConfigParser(os.path.join(project_root_directory, self.cxxd_config_filename), project_root_directory)
         self.action = {
             ServerRequestId.START_ALL_SERVICES    : self.__start_all_services,
             ServerRequestId.START_SERVICE         : self.__start_service,
@@ -83,9 +77,22 @@ class Server():
             ServerRequestId.SHUTDOWN_AND_EXIT     : self.__shutdown_and_exit
             # TODO add runtime debugging switch action
         }
+        self.service = {}
         self.started_up = True
-        logging.info("Registered services: {0}".format(self.service))
-        logging.info("Actions: {0}".format(self.action))
+        self.configuration = self.cxxd_config_parser.get_configuration_for_target(target)
+        if self.configuration:
+            self.service = {
+                ServiceId.SOURCE_CODE_MODEL : self.ServiceHandler(SourceCodeModel(project_root_directory, self.cxxd_config_parser, target, source_code_model_plugin)),
+                ServiceId.PROJECT_BUILDER   : self.ServiceHandler(ProjectBuilder(project_root_directory, self.cxxd_config_parser, project_builder_plugin)),
+                ServiceId.CLANG_FORMAT      : self.ServiceHandler(ClangFormat(project_root_directory, self.cxxd_config_parser, clang_format_plugin)),
+                ServiceId.CLANG_TIDY        : self.ServiceHandler(ClangTidy(project_root_directory, self.cxxd_config_parser, target, clang_tidy_plugin)),
+            }
+            logging.info("Registered services: {0}".format(self.service))
+            logging.info("Actions: {0}".format(self.action))
+        else:
+            logging.fatal('Unable to find proper configuration for given target: {0}. Please check entries in your .cxxd_config.json.'.format(target))
+            logging.fatal('Bailing out ...')
+            self.__shutdown_and_exit(0, [])
 
     def __start_all_services(self, dummyServiceId, dummyPayload):
         logging.info("Starting all registered services ... {0}".format(self.service))

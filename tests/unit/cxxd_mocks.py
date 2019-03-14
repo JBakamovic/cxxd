@@ -86,6 +86,9 @@ class TranslationUnitMock():
         return self.diag
 
 class CxxdConfigParserMock():
+    def get_configuration_for_target(self, target):
+        return './'
+
     def get_blacklisted_directories(self):
         return []
 
