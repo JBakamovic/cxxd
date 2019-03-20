@@ -131,8 +131,8 @@ def source_code_model_auto_completion_code_complete_request(handle, filename, co
 #
 # Code-completion service API
 #
-def code_completion_start(handle, json_compilation_database):
-    _server_start_service(handle, ServiceId.CODE_COMPLETION, json_compilation_database)
+def code_completion_start(handle):
+    _server_start_service(handle, ServiceId.CODE_COMPLETION)
 
 def code_completion_stop(handle, subscribe_for_callback):
     _server_stop_service(handle, ServiceId.CODE_COMPLETION, subscribe_for_callback)
