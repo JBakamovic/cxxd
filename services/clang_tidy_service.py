@@ -15,7 +15,6 @@ class ClangTidy(cxxd.service.Service):
            self.cxxd_config_parser.get_clang_tidy_args()
         )
         self.clang_tidy_binary = self.cxxd_config_parser.get_clang_tidy_binary_path()
-        self.clang_tidy_success_code = 1
         self.clang_tidy_output = None
         if self.clang_tidy_binary:
             configuration = self.cxxd_config_parser.get_configuration_for_target(target)
@@ -64,7 +63,7 @@ class ClangTidy(cxxd.service.Service):
                 self.clang_tidy_args
             logging.info("Triggering clang-tidy over '{0}' with '{1}'".format(filename, clang_tidy_binary))
             with open(self.clang_tidy_output.name, 'w') as f:
-                ret = subprocess.call(clang_tidy_binary, shell=True, stdout=f)
+                subprocess.call(clang_tidy_binary, shell=True, stdout=f)
             logging.info("clang-tidy over '{0}' completed.".format(filename))
-            return ret == self.clang_tidy_success_code, self.clang_tidy_output.name
+            return True, self.clang_tidy_output.name
         return False, None
