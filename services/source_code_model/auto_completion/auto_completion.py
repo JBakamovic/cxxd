@@ -5,7 +5,8 @@ import os
 from expression_parser_utils import *
 
 class SourceCodeModelAutoCompletionRequestId():
-    CODE_COMPLETE     = 0x0
+    CODE_COMPLETE = 0x0
+    CACHE_WARMUP  = 0x1
 
 class AutoCompletionSortingAlgorithmId():
     BY_PRIORITY  = 0x0
@@ -24,6 +25,7 @@ class AutoCompletion():
         self.parser = parser
         self.op = {
             SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE : self.__code_complete,
+            SourceCodeModelAutoCompletionRequestId.CACHE_WARMUP  : self.__cache_warmup,
         }
         self.sorting_fun = {
             AutoCompletionSortingAlgorithmId.BY_PRIORITY    : self.__sort_auto_completion_candidates_by_priority,
@@ -39,8 +41,11 @@ class AutoCompletion():
         logging.error("Unknown operation with ID={0} triggered! Valid operations are: {1}".format(id, self.op))
         return False, None
 
-    def __drop_completion_candidate_list(self):
-        del self.completion_candidates[:]
+    def __cache_warmup(self, id, args):
+        filename = str(args[0])
+        line     = int(args[1])
+        column   = int(args[2])
+        return True, self.parser.code_complete(filename, filename, line+1, 1)
 
     def __code_complete(self, id, args):
         original_filename = str(args[0])
@@ -110,6 +115,9 @@ class AutoCompletion():
 
         self.sorting_fun.get(sorting_algo_id, self.__sort_auto_completion_candidates_by_priority)(self.completion_candidates)
         return True, self.completion_candidates
+
+    def __drop_completion_candidate_list(self):
+        del self.completion_candidates[:]
 
     def __filter_completion_candidates(self, candidates, pattern):
         filtered_completion_candidates = []
