@@ -1275,3 +1275,21 @@ my_                                         \n\
         self.assertEqual(success, True)
         self.assertEqual(len(completion_candidates), 1)
 
+    def test_if_call_returns_true_and_non_empty_candidate_list_during_cache_warmup(self):
+        self.fd.write('\
+#include <vector>                           \n\
+                                            \n\
+int main() {                                \n\
+    return 0;                               \n\
+}                                           \n\
+        ')
+
+        line, column = 5, 1
+        success, completion_candidates = self.service([
+            SourceCodeModelAutoCompletionRequestId.CACHE_WARMUP,
+            self.fd.name,
+            line,
+            column
+        ])
+        self.assertEqual(success, True)
+        self.assertNotEqual(len(completion_candidates), 0)
