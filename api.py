@@ -140,6 +140,9 @@ def code_completion_stop(handle, subscribe_for_callback):
 def code_complete_request(handle, filename, contents, line, col, offset, sorting_strategy):
     _server_request_service(handle, ServiceId.CODE_COMPLETION, SourceCodeModelAutoCompletionRequestId.CODE_COMPLETE, filename, contents, line, col, offset, sorting_strategy)
 
+def code_complete_cache_warmup_request(handle, filename, line, column):
+    _server_request_service(handle, ServiceId.CODE_COMPLETION, SourceCodeModelAutoCompletionRequestId.CACHE_WARMUP, filename, line, column)
+
 #
 # Project builder service API
 #
