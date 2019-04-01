@@ -76,25 +76,45 @@ class ClangParser():
     def get_compiler_args_db(self):
         return self.compiler_args
 
-    def code_complete(self, contents_filename, original_filename, line, column, complete_macros=False, complete_lang_constructs=False, opts=None):
-        def do_parse(contents_filename, original_filename, build_flags):
-            try:
-                return self.index.parse(
-                    path = contents_filename,
-                    args = build_flags,
-                    options = self.default_parsing_flags() if opts is None else opts
-                )
-            except:
-                logging.error(sys.exc_info())
+    def code_complete_cache_warmup(self, filename, line, column, complete_macros=False, complete_lang_constructs=False, opts=None):
+        # If TUnit is already cached, then we've already done the cache-warmup ...
+        completion_results = None
+        tunit, tunit_build_flags, tunit_timestamp = self.tunit_cache.fetch(filename)
+        if tunit is None:
+            # But if not, we have to parse it first ...
+            build_flags = self.compiler_args.get(filename)
+            tunit = self.__do_parse(
+                filename,
+                filename,
+                build_flags,
+                opts
+            )
+            if tunit:
+                # Now, trigger the code-complete on given TUnit ...
+                self.tunit_cache.insert(filename, tunit, build_flags, os.path.getmtime(filename))
+                with open(filename) as f:
+                    completion_results = tunit.codeComplete(
+                        tunit.spelling,
+                        line,
+                        column + 1,
+                        include_macros=complete_macros,
+                        include_code_patterns=complete_lang_constructs,
+                        unsaved_files=[(filename, f.read()),]
+                    )
+            else:
+                logging.error('Unable to parse TUnit!')
+        return completion_results
 
+    def code_complete(self, contents_filename, original_filename, line, column, complete_macros=False, complete_lang_constructs=False, opts=None):
         # Check if TUnit is already cached. If not, we have to parse it first ...
         tunit, tunit_build_flags, tunit_timestamp = self.tunit_cache.fetch(original_filename)
         if tunit is None:
             build_flags = self.compiler_args.get(original_filename)
-            tunit = do_parse(
+            tunit = self.__do_parse(
                 contents_filename,
                 original_filename,
-                build_flags
+                build_flags,
+                opts
             )
             if tunit:
                 self.tunit_cache.insert(original_filename, tunit, build_flags, os.path.getmtime(original_filename))
@@ -119,25 +139,16 @@ class ClangParser():
         _libclang.clang_sortCodeCompletionResults(auto_completion_candidates.results, len(auto_completion_candidates.results))
 
     def parse(self, contents_filename, original_filename, opts=None):
-        def do_parse(contents_filename, original_filename, build_flags):
-            try:
-                return self.index.parse(
-                    path = contents_filename,
-                    args = build_flags,
-                    options = self.default_parsing_flags() if opts is None else opts
-                )
-            except:
-                logging.error(sys.exc_info())
-
         # Check if we have this tunit already in the cache ...
         tunit, tunit_build_flags, tunit_timestamp = self.tunit_cache.fetch(original_filename)
         if tunit is None:
             logging.info('TUnit NOT found in cache!')
             build_flags = self.compiler_args.get(original_filename)
-            tunit = do_parse(
+            tunit = self.__do_parse(
                 contents_filename,
                 original_filename,
-                build_flags
+                build_flags,
+                opts
             )
             if tunit:
                 self.tunit_cache.insert(original_filename, tunit, build_flags, os.path.getmtime(original_filename))
@@ -148,10 +159,11 @@ class ClangParser():
             curr_timestamp = os.path.getmtime(contents_filename)
             if tunit_timestamp != curr_timestamp:      # We still have to make sure that cached tunit is not out-of-date.
                 logging.info('But it is too old ... reparsing')
-                tunit = do_parse(
+                tunit = self.__do_parse(
                     contents_filename,
                     original_filename,
-                    self.compiler_args.prepare_for_modified_files(original_filename, tunit_build_flags)
+                    self.compiler_args.prepare_for_modified_files(original_filename, tunit_build_flags),
+                    opts
                 )
                 if tunit:
                     self.tunit_cache.update(original_filename, tunit, tunit_build_flags, curr_timestamp)
@@ -345,6 +357,16 @@ class ClangParser():
 
             logging.debug('----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------')
             self.traverse(tunit.cursor, None, visitor)
+
+    def __do_parse(self, contents_filename, original_filename, build_flags, opts=None):
+        try:
+            return self.index.parse(
+                path = contents_filename,
+                args = build_flags,
+                options = self.default_parsing_flags() if opts is None else opts
+            )
+        except:
+            logging.error(sys.exc_info())
 
     @staticmethod
     def __extract_dependent_type_kind(cursor):

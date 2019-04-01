@@ -45,7 +45,7 @@ class AutoCompletion():
         filename = str(args[0])
         line     = int(args[1])
         column   = int(args[2])
-        return True, self.parser.code_complete(filename, filename, line+1, 1)
+        return True, self.parser.code_complete_cache_warmup(filename, line+1, 1)
 
     def __code_complete(self, id, args):
         original_filename = str(args[0])
