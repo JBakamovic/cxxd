@@ -1,4 +1,5 @@
 import logging
+import sys
 from multiprocessing import Queue
 
 # TODO Service impl. is where bits from ServiceHandler impl. should really go
@@ -59,7 +60,11 @@ class Service():
 
     def process_request(self):
         payload = self.queue.get()
-        still_running = self.action.get(payload[0], self.__unknown_action)(payload[1])
+        try:
+            still_running = self.action.get(payload[0], self.__unknown_action)(payload[1])
+        except:
+            logging.error(sys.exc_info())
+            still_running = True
         return still_running
 
     def send_startup_request(self, payload):
