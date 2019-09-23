@@ -18,11 +18,12 @@ ext_dep = {
 }
 
 # We have to provide a factory method to instantiate the server the way we want ...
-def get_server_instance(handle, proj_root_directory, args):
+def get_server_instance(handle, proj_root_directory, target_configuration, args):
     source_code_model_cb_result, clang_format_cb_result, clang_tidy_cb_result, project_builder_cb_result  = args
     return cxxd.server.Server(
         handle,
         proj_root_directory,
+        target_configuration,
         cxxd_plugins.SourceCodeModelServicePluginMock(source_code_model_cb_result),
         cxxd_plugins.ProjectBuilderServicePluginMock(project_builder_cb_result),
         cxxd_plugins.ClangFormatServicePluginMock(clang_format_cb_result),
@@ -56,7 +57,7 @@ class CxxdIntegrationTest(unittest.TestCase):
         # Setup some paths
         cls.fut = ext_dep['chaiscript']['path'] + os.sep + 'include' + os.sep + 'chaiscript' + os.sep + 'chaiscript_stdlib.hpp'
         cls.proj_root_dir = ext_dep['chaiscript']['path']
-        cls.compiler_args = cls.proj_root_dir + os.sep + 'compile_commands.json'
+        cls.target_configuration = None # We force Cxxd go into auto-discovery mode if we don't provide any configuration
         cls.clang_format_config = cls.proj_root_dir + os.sep + '.clang-format'
         cls.log_file = current_dir + os.sep + 'cxxd.log'
 
@@ -87,13 +88,14 @@ class CxxdIntegrationTest(unittest.TestCase):
                 cls.project_builder_cb_result,
             ),
             cls.proj_root_dir,
+            cls.target_configuration,
             cls.log_file
         )
 
         # And services that we want to test ...
-        cxxd.api.source_code_model_start(cls.handle, cls.compiler_args)
+        cxxd.api.source_code_model_start(cls.handle)
         cxxd.api.clang_format_start(cls.handle)
-        cxxd.api.clang_tidy_start(cls.handle, cls.compiler_args)
+        cxxd.api.clang_tidy_start(cls.handle)
         cxxd.api.project_builder_start(cls.handle)
 
         # Run the indexer ... Wait until it completes.
