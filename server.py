@@ -1,12 +1,13 @@
 import logging
 import os
+import sys
 from multiprocessing import Process
-from parser.cxxd_config_parser import CxxdConfigParser
-from services.clang_format_service import ClangFormat
-from services.clang_tidy_service import ClangTidy
-from services.project_builder_service import ProjectBuilder
-from services.code_completion_service import CodeCompletion
-from services.source_code_model_service import SourceCodeModel
+from . parser.cxxd_config_parser import CxxdConfigParser
+from . services.clang_format_service import ClangFormat
+from . services.clang_tidy_service import ClangTidy
+from . services.project_builder_service import ProjectBuilder
+from . services.code_completion_service import CodeCompletion
+from . services.source_code_model_service import SourceCodeModel
 
 class ServiceId():
     SOURCE_CODE_MODEL     = 0x0
@@ -33,7 +34,7 @@ class Server():
             if self.is_started():
                 logging.warning("Service process already started!")
             else:
-                from service import service_listener
+                from . service import service_listener
                 self.process = Process(target=service_listener, args=(self.service,), name=self.service.__class__.__name__)
                 self.process.daemon = False
                 self.process.start()
@@ -99,7 +100,7 @@ class Server():
 
     def __start_all_services(self, dummyServiceId, dummyPayload):
         logging.info("Starting all registered services ... {0}".format(self.service))
-        for serviceId, svc_handler in self.service.iteritems():
+        for serviceId, svc_handler in self.service.items():
             svc_handler.start_listening()
             svc_handler.startup_request(dummyPayload)
             logging.info(
@@ -121,12 +122,12 @@ class Server():
 
     def __shutdown_all_services(self, dummyServiceId, payload):
         logging.info("Shutting down all registered services ... {0}".format(self.service))
-        for serviceId, svc_handler in self.service.iteritems():
+        for serviceId, svc_handler in self.service.items():
             svc_handler.shutdown_request(payload)
             logging.info(
                 "id={0}, service='{1}', payload={2}".format(serviceId, svc_handler.service.__class__.__name__, payload)
             )
-        for svc_handler in self.service.itervalues():
+        for svc_handler in self.service.values():
             svc_handler.stop_listening()
         return self.started_up
 
@@ -165,7 +166,11 @@ class Server():
 
     def process_request(self):
         payload = self.handle.get()
-        still_running = self.action.get(int(payload[0]), self.__unknown_action)(int(payload[1]), payload[2])
+        try:
+            still_running = self.action.get(int(payload[0]), self.__unknown_action)(int(payload[1]), payload[2])
+        except:
+            logging.error(sys.exc_info())
+            still_running = True
         return still_running
 
     def is_started_up(self):

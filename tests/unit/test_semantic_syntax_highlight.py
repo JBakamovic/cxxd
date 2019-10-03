@@ -2,7 +2,7 @@ import clang.cindex
 import mock
 import unittest
 
-import cxxd_mocks
+from . import cxxd_mocks
 import parser.ast_node_identifier
 import parser.clang_parser
 import parser.tunit_cache

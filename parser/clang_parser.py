@@ -2,8 +2,8 @@ import clang.cindex
 import logging
 import os
 import sys
-from ast_node_identifier import ASTNodeId
-from compiler_args import CompilerArgs
+from cxxd.parser.ast_node_identifier import ASTNodeId
+from cxxd.parser.compiler_args import CompilerArgs
 
 class ChildVisitResult(clang.cindex.BaseEnumeration):
     """

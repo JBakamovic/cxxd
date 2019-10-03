@@ -4,9 +4,9 @@ import tempfile
 import unittest
 
 import api
-import cxxd_mocks
 import server
-from file_generator import FileGenerator
+from . import cxxd_mocks
+from . file_generator import FileGenerator
 
 class ServerTest(unittest.TestCase):
     @classmethod

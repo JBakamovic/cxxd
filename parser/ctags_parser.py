@@ -3,7 +3,7 @@ import shlex
 import logging
 import os.path
 from subprocess import call
-from ast_node_identifier import ASTNodeId
+from . ast_node_identifier import ASTNodeId
 
 class CtagsTokenizer():
     def __init__(self, tag_db_path):

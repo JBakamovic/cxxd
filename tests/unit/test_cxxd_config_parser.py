@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-import cxxd_mocks
+from . import cxxd_mocks
 from file_generator import FileGenerator
 from parser.cxxd_config_parser import CxxdConfigParser
 

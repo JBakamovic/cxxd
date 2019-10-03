@@ -1,9 +1,9 @@
-from server import ServiceId
-from server import ServerRequestId
-from services.source_code_model_service import SourceCodeModelSubServiceId
-from services.source_code_model.indexer.clang_indexer import SourceCodeModelIndexerRequestId
-from services.code_completion.code_completion import CodeCompletionRequestId
-from services.project_builder_service import ProjectBuilderRequestId
+from . server import ServiceId
+from . server import ServerRequestId
+from . services.source_code_model_service import SourceCodeModelSubServiceId
+from . services.code_completion.code_completion import CodeCompletionRequestId
+from . services.source_code_model.indexer.clang_indexer import SourceCodeModelIndexerRequestId
+from . services.project_builder_service import ProjectBuilderRequestId
 
 #
 # Server API
@@ -24,7 +24,7 @@ def server_start(get_server_instance, get_server_instance_args, project_root_dir
             # But sys.excepthook does not work anymore within multi-threaded/multi-process environment (see https://bugs.python.org/issue1230540)
             # So what we can do is to override the Service.listen() implementation so it includes try-catch block with exceptions
             # being forwarded to the sys.excepthook function.
-            from service import service_listener
+            from . service import service_listener
             run_original = service_listener
             def listen(self):
                 try:
@@ -43,8 +43,9 @@ def server_start(get_server_instance, get_server_instance_args, project_root_dir
 
         # Instantiate and run the server
         try:
-            from server import server_listener
+            from . server import server_listener
             server_listener(get_server_instance(handle, project_root_directory, target_configuration, args))
+            logging.info("Server listener starting up ...")
         except:
             sys.excepthook(*sys.exc_info())
 

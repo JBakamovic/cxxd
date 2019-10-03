@@ -1,4 +1,4 @@
-class TUnitPool(object):
+class TUnitPool():
     def __init__(self):
         self.tunits = {}
 
@@ -28,7 +28,7 @@ class TUnitPool(object):
         self.drop(filename)
 
     def __iter__(self):
-        return self.tunits.iteritems()
+        return iter(self.tunits.items())
 
 
 class ImmutableSourceLocation():

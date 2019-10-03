@@ -3,7 +3,7 @@ import logging
 import cxxd.parser.clang_parser
 import cxxd.parser.tunit_cache
 import cxxd.service
-from code_completion.code_completion import CodeCompletion as CodeCompletionImpl
+from cxxd.services.code_completion.code_completion import CodeCompletion as CodeCompletionImpl
 
 class CodeCompletion(cxxd.service.Service):
     def __init__(self, project_root_directory, cxxd_config_parser, target, service_plugin):

@@ -18,7 +18,7 @@ class ProjectBuilderTest(unittest.TestCase):
         FileGenerator.close_gen_file(cls.cxxd_config)
 
     def setUp(self):
-        import cxxd_mocks
+        from . import cxxd_mocks
         from services.project_builder_service import ProjectBuilder
         self.service = ProjectBuilder(self.project_root_directory, CxxdConfigParser(self.cxxd_config.name, self.project_root_directory), cxxd_mocks.ServicePluginMock())
         self.build_cmd = 'gcc -o {0}.o -c {1}'.format(self.file_to_be_built.name, self.file_to_be_built.name)

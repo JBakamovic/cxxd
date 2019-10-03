@@ -33,8 +33,8 @@ if __name__ == "__main__":
     FORMAT = '[%(asctime)s.%(msecs)03d] [%(levelname)s] [%(filename)s:%(lineno)s] %(funcName)25s(): %(message)s'
     logging.basicConfig(filename=args.log_file, filemode='w', format=FORMAT, datefmt='%H:%M:%S', level=logging.INFO)
 
-    import clang_indexer
-    clang_indexer.index_file_list(
+    from cxxd.services.source_code_model.indexer.clang_indexer import index_file_list
+    index_file_list(
         args.project_root_directory,
         args.input_list,
         args.compiler_args_filename,

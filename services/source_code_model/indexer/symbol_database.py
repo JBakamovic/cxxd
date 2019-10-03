@@ -8,7 +8,7 @@ class DiagnosticsSortingStrategyId():
     BY_SEVERITY_DESC = 0x2
     BY_FILENAME      = 0x3
 
-class SymbolDatabase(object):
+class SymbolDatabase():
     VERSION_MAJOR = 0
     VERSION_MINOR = 2
 
@@ -49,7 +49,7 @@ class SymbolDatabase(object):
         return self.db_connection is not None
 
     def get_symbol_filename(self, row):
-        return row[0].encode('utf8', 'ignore')
+        return row[0]
 
     def get_symbol_line(self, row):
         return row[1]
@@ -58,10 +58,10 @@ class SymbolDatabase(object):
         return row[2]
 
     def get_symbol_usr(self, row):
-        return row[3].encode('utf8', 'ignore')
+        return row[3]
 
     def get_symbol_context(self, row):
-        return row[4].encode('utf8', 'ignore')
+        return row[4]
 
     def get_symbol_kind(self, row):
         return row[5]
@@ -73,7 +73,7 @@ class SymbolDatabase(object):
         return row[0]
 
     def get_diagnostics_filename(self, row):
-        return row[1].encode('utf8', 'ignore')
+        return row[1]
 
     def get_diagnostics_line(self, row):
         return row[2]
@@ -82,7 +82,7 @@ class SymbolDatabase(object):
         return row[3]
 
     def get_diagnostics_description(self, row):
-        return row[4].encode('utf8', 'ignore')
+        return row[4]
 
     def get_diagnostics_severity(self, row):
         return row[5]
@@ -91,7 +91,7 @@ class SymbolDatabase(object):
         return row[0]
 
     def get_diagnostics_details_filename(self, row):
-        return row[1].encode('utf8', 'ignore')
+        return row[1]
 
     def get_diagnostics_details_line(self, row):
         return row[2]
@@ -100,7 +100,7 @@ class SymbolDatabase(object):
         return row[3]
 
     def get_diagnostics_details_description(self, row):
-        return row[4].encode('utf8', 'ignore')
+        return row[4]
 
     def get_diagnostics_details_severity(self, row):
         return row[5]
@@ -179,11 +179,11 @@ class SymbolDatabase(object):
             if unique_id != '':
                 self.db_connection.cursor().execute('INSERT INTO symbol VALUES (?, ?, ?, ?, ?, ?, ?)',
                     (
-                        filename.decode('utf8', 'ignore') if isinstance(filename, str) else filename,     # NOTE Decoding an already UTF-8 encoded
-                        line,                                                                   #      string (unicode) raises an exception.
-                        column,                                                                 #      Therefore 'isinstance' check.
-                        unique_id.decode('utf8', 'ignore') if isinstance(unique_id, str) else unique_id,
-                        context.decode('utf8', 'ignore') if isinstance(context, str) else context,
+                        filename,
+                        line,
+                        column,
+                        unique_id,
+                        context,
                         symbol_kind,
                         is_definition,
                     )
@@ -205,10 +205,10 @@ class SymbolDatabase(object):
             cursor = self.db_connection.cursor()
             cursor.execute('INSERT INTO diagnostics(filename, line, column, description, severity) VALUES (?, ?, ?, ?, ?)',
                 (
-                    filename.decode('utf8', 'ignore') if isinstance(filename, str) else filename,     # NOTE Decoding an already UTF-8 encoded
-                    line,                                                                   #      string (unicode) raises an exception.
-                    column,                                                                 #      Therefore 'isinstance' check.
-                    description.decode('utf8', 'ignore') if isinstance(description, str) else description,
+                    filename,
+                    line,
+                    column,
+                    description,
                     severity,
                 )
             )
@@ -230,10 +230,10 @@ class SymbolDatabase(object):
             self.db_connection.cursor().execute('INSERT INTO diagnostics_details VALUES (?, ?, ?, ?, ?, ?)',
                 (
                     diagnostics_id,
-                    filename.decode('utf8', 'ignore') if isinstance(filename, str) else filename,     # NOTE Decoding an already UTF-8 encoded
-                    line,                                                                   #      string (unicode) raises an exception.
-                    column,                                                                 #      Therefore 'isinstance' check.
-                    description.decode('utf8', 'ignore') if isinstance(description, str) else description,
+                    filename,
+                    line,
+                    column,
+                    description,
                     severity,
                 )
             )
@@ -284,8 +284,8 @@ class SymbolDatabase(object):
                         symbol_db.get_diagnostics_details_description(row),
                         symbol_db.get_diagnostics_details_severity(row)
                     )
-            self.flush()
             symbol_db.close()
+        self.flush()
 
     def flush(self):
         try:

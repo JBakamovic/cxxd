@@ -32,7 +32,7 @@ class ServicePluginMock():
         pass
 
 class SourceLocationMock():
-    class File:
+    class File():
         def __init__(self, filename):
             self.filename = filename
 

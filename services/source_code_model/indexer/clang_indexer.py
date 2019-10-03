@@ -1,5 +1,6 @@
 import linecache
 import logging
+import math
 import multiprocessing
 import os
 import shlex
@@ -11,12 +12,12 @@ from cxxd.parser.clang_parser import ClangParser
 from cxxd.parser.tunit_cache import TranslationUnitCache, NoCache
 from cxxd.parser.ast_node_identifier import ASTNodeId
 from cxxd.parser.clang_parser import ChildVisitResult
-from symbol_database import SymbolDatabase
+from cxxd.services.source_code_model.indexer.symbol_database import SymbolDatabase
 
 # TODO move this to utils
 import itertools
 def slice_it(iterable, n, padvalue=None):
-    return itertools.izip_longest(*[iter(iterable)]*n, fillvalue=padvalue)
+    return itertools.zip_longest(*[iter(iterable)]*n, fillvalue=padvalue)
 
 class SourceCodeModelIndexerRequestId():
     RUN_ON_SINGLE_FILE        = 0x0
@@ -26,7 +27,7 @@ class SourceCodeModelIndexerRequestId():
     FIND_ALL_REFERENCES       = 0x10
     FETCH_ALL_DIAGNOSTICS     = 0x11
 
-class ClangIndexer(object):
+class ClangIndexer():
     supported_ast_node_ids = [
         ASTNodeId.getClassId(),           ASTNodeId.getStructId(),            ASTNodeId.getEnumId(),             ASTNodeId.getEnumValueId(), # handle user-defined types
         ASTNodeId.getUnionId(),           ASTNodeId.getTypedefId(),           ASTNodeId.getUsingDeclarationId(),
@@ -117,16 +118,20 @@ class ClangIndexer(object):
             indexer_input_list = []
 
             # We will slice the input file list into a number of chunks which corresponds to the amount of available CPU cores
-            how_many_chunks = len(cpp_file_list) / multiprocessing.cpu_count()
+            how_many_chunks = math.ceil(len(cpp_file_list) / multiprocessing.cpu_count())
 
             # Now we are able to parallelize the indexing operation across different CPU cores
             for cpp_file_list_chunk in slice_it(cpp_file_list, how_many_chunks):
 
                 # Each subprocess will get a file containing source files to be indexed
                 indexer_input_handle, indexer_input = create_indexer_input_list_file(self.root_directory, '.cxxd_idx_input', cpp_file_list_chunk)
+                os.fsync(indexer_input_handle)
+                os.close(indexer_input_handle)
 
                 # Each subprocess will get an empty DB file to record indexing results into it
                 symbol_db_handle, symbol_db = create_empty_symbol_db(self.root_directory, self.symbol_db_name)
+                os.fsync(indexer_input_handle)
+                os.close(indexer_input_handle)
 
                 # Start indexing a given chunk in a new subprocess
                 #   Note: Running and handling subprocesses as following, and not via multiprocessing.Process module,
@@ -351,7 +356,7 @@ def get_cpp_file_list(root_directory, blacklisted_directories, recognized_file_e
 def create_indexer_input_list_file(directory, with_prefix, cpp_file_list_chunk):
     chunk_with_no_none_items = '\n'.join(item for item in cpp_file_list_chunk if item)
     cpp_file_list_handle, cpp_file_list = tempfile.mkstemp(prefix=with_prefix, dir=directory)
-    os.write(cpp_file_list_handle, chunk_with_no_none_items)
+    os.write(cpp_file_list_handle, chunk_with_no_none_items.encode("utf-8"))
     return cpp_file_list_handle, cpp_file_list
 
 def create_empty_symbol_db(directory, with_prefix):
@@ -359,7 +364,7 @@ def create_empty_symbol_db(directory, with_prefix):
     return symbol_db_handle, symbol_db
 
 def start_indexing_subprocess(root_directory, compiler_args_filename, indexer_input_list_filename, output_db_filename, log_filename):
-    cmd = "python2 " + get_clang_index_path() + \
+    cmd = "python3 " + get_clang_index_path() + \
             " --project_root_directory='" + root_directory + \
             "' --compiler_args_filename='" + compiler_args_filename + \
             "' --input_list='" + indexer_input_list_filename + \

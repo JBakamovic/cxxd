@@ -16,7 +16,7 @@ class SourceCodeModelTest(unittest.TestCase):
         pass
 
     def setUp(self):
-        import cxxd_mocks
+        from . import cxxd_mocks
         from services.source_code_model_service import SourceCodeModel
         self.service = SourceCodeModel(self.project_root_directory, cxxd_mocks.CxxdConfigParserMock(), self.target, cxxd_mocks.ServicePluginMock())
         self.unknown_subservice_id = 0xABABABA

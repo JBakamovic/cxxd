@@ -17,7 +17,7 @@ def file_type_to_programming_language(file_type):
         'Cxx': ['.c', '.cpp', '.cc', '.h', '.hh', '.hpp'],
         'Java': ['.java']
     }
-    for lang, file_types in file_type_dict.iteritems():
+    for lang, file_types in file_type_dict.items():
         if file_type in file_types:
             return lang
     return ''

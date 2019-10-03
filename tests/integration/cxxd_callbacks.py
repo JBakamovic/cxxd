@@ -206,7 +206,7 @@ class SourceCodeModelCallbackResult():
         self.wait_on_completion.release()
 
     def reset(self):
-        for key, callback_result in self.type.iteritems():
+        for key, callback_result in self.type.items():
             callback_result.reset()
 
     def __getitem__(self, key):
