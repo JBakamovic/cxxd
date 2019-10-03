@@ -1,4 +1,5 @@
-class ASTNodeId():
+from builtins import object
+class ASTNodeId(object):
     @staticmethod
     def getNamespaceId():
         return "namespace"

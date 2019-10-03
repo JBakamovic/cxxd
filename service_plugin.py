@@ -1,4 +1,5 @@
-class ServicePlugin():
+from builtins import object
+class ServicePlugin(object):
     def __init__(self):
         pass
 

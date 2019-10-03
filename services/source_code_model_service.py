@@ -1,18 +1,20 @@
+from __future__ import absolute_import
+from builtins import object
 import json
 import logging
 import os
 import cxxd.parser.clang_parser
 import cxxd.parser.tunit_cache
 import cxxd.service
-from source_code_model.semantic_syntax_highlight.semantic_syntax_highlight import SemanticSyntaxHighlight
-from source_code_model.diagnostics.diagnostics import Diagnostics
-from source_code_model.indexer.clang_indexer import ClangIndexer
-from source_code_model.type_deduction.type_deduction import TypeDeduction
-from source_code_model.go_to_definition.go_to_definition import GoToDefinition
-from source_code_model.go_to_include.go_to_include import GoToInclude
-from source_code_model.auto_completion.auto_completion import AutoCompletion
+from . source_code_model.semantic_syntax_highlight.semantic_syntax_highlight import SemanticSyntaxHighlight
+from . source_code_model.diagnostics.diagnostics import Diagnostics
+from . source_code_model.indexer.clang_indexer import ClangIndexer
+from . source_code_model.type_deduction.type_deduction import TypeDeduction
+from . source_code_model.go_to_definition.go_to_definition import GoToDefinition
+from . source_code_model.go_to_include.go_to_include import GoToInclude
+from . source_code_model.auto_completion.auto_completion import AutoCompletion
 
-class SourceCodeModelSubServiceId():
+class SourceCodeModelSubServiceId(object):
     INDEXER                   = 0x0
     SEMANTIC_SYNTAX_HIGHLIGHT = 0x1
     DIAGNOSTICS               = 0x2

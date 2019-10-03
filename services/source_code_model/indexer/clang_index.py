@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import argparse
 import logging
 import os
@@ -32,7 +33,7 @@ if __name__ == "__main__":
     FORMAT = '[%(asctime)s.%(msecs)03d] [%(levelname)s] [%(filename)s:%(lineno)s] %(funcName)25s(): %(message)s'
     logging.basicConfig(filename=args.log_file, filemode='w', format=FORMAT, datefmt='%H:%M:%S', level=logging.INFO)
  
-    import clang_indexer
+    from . import clang_indexer
     clang_indexer.index_file_list(
         args.project_root_directory,
         args.input_list,

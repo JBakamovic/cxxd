@@ -1,10 +1,11 @@
+from builtins import object
 import logging
 import sys
 from multiprocessing import Queue
 
 # TODO Service impl. is where bits from ServiceHandler impl. should really go
 
-class Service():
+class Service(object):
     def __init__(self, service_plugin):
         self.queue = Queue()
         self.service_plugin = service_plugin

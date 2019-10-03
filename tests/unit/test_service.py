@@ -3,7 +3,8 @@ import unittest
 
 class ServiceTest(unittest.TestCase):
     def setUp(self):
-        import cxxd_mocks, service
+        from . import cxxd_mocks
+        import service
         self.unsupported_request = 0xFF
         self.payload = [0x1, 0x2, 0x3]
         self.service = service.Service(cxxd_mocks.ServicePluginMock())

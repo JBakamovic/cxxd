@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import unittest
 
 import parser.clang_parser
@@ -27,7 +28,7 @@ class SourceCodeModelDiagnosticsTest(unittest.TestCase):
         FileGenerator.close_gen_file(cls.txt_compilation_database)
 
     def setUp(self):
-        import cxxd_mocks
+        from  import cxxd_mocks
         from services.source_code_model.diagnostics.diagnostics import Diagnostics
         self.service = Diagnostics(self.parser)
 

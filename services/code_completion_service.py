@@ -1,8 +1,9 @@
+from __future__ import absolute_import
 import logging
 import cxxd.parser.clang_parser
 import cxxd.parser.tunit_cache
 import cxxd.service
-from source_code_model.auto_completion.auto_completion import AutoCompletion
+from . source_code_model.auto_completion.auto_completion import AutoCompletion
 
 class CodeCompletion(cxxd.service.Service):
     def __init__(self, project_root_directory, cxxd_config_parser, target, service_plugin):

@@ -1,14 +1,17 @@
+from __future__ import absolute_import
+from builtins import str
+from builtins import object
 import clang.cindex
 import logging
 import os
 
-from expression_parser_utils import *
+from . expression_parser_utils import *
 
-class SourceCodeModelAutoCompletionRequestId():
+class SourceCodeModelAutoCompletionRequestId(object):
     CODE_COMPLETE = 0x0
     CACHE_WARMUP  = 0x1
 
-class AutoCompletionSortingAlgorithmId():
+class AutoCompletionSortingAlgorithmId(object):
     BY_PRIORITY  = 0x0
     BY_KIND      = 0x1
     BY_ALPHABET  = 0x2
@@ -20,7 +23,7 @@ def read_line(filename, offset):
     f.close()
     return l
 
-class AutoCompletion():
+class AutoCompletion(object):
     def __init__(self, parser):
         self.parser = parser
         self.op = {

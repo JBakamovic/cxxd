@@ -1,12 +1,13 @@
+from __future__ import absolute_import
 import mock
 import multiprocessing
 import tempfile
 import unittest
 
 import api
-import cxxd_mocks
+from . import cxxd_mocks
 import server
-from file_generator import FileGenerator
+from . file_generator import FileGenerator
 
 class ServerTest(unittest.TestCase):
     @classmethod
@@ -27,6 +28,7 @@ class ServerTest(unittest.TestCase):
             self.handle,
             self.project_root_directory,
             self.target,
+            cxxd_mocks.ServicePluginMock(),
             cxxd_mocks.ServicePluginMock(),
             cxxd_mocks.ServicePluginMock(),
             cxxd_mocks.ServicePluginMock(),

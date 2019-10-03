@@ -1,3 +1,4 @@
+from builtins import object
 class TUnitPool(object):
     def __init__(self):
         self.tunits = {}
@@ -28,10 +29,10 @@ class TUnitPool(object):
         self.drop(filename)
 
     def __iter__(self):
-        return self.tunits.iteritems()
+        return iter(self.tunits.items())
 
 
-class ImmutableSourceLocation():
+class ImmutableSourceLocation(object):
     """
     Reason of existance of this class is because clang.cindex.SourceLocation is not designed to be hashable.
     """

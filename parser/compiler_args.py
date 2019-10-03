@@ -1,10 +1,12 @@
+from builtins import str
+from builtins import object
 import clang.cindex
 import logging
 import os
 import sys
 
-class CompilerArgs():
-    class JSONCompilationDatabase():
+class CompilerArgs(object):
+    class JSONCompilationDatabase(object):
         def __init__(self, default_compiler_args, filename):
             self.default_compiler_args = default_compiler_args
             self.cached_compiler_args = []
@@ -60,7 +62,7 @@ class CompilerArgs():
                         compiler_args = list(self.default_compiler_args)
             return compiler_args
 
-    class CompileFlagsCompilationDatabase():
+    class CompileFlagsCompilationDatabase(object):
         def __init__(self, default_compiler_args, filename):
             self.root_project_directory = ['-working-directory=' + os.path.dirname(filename)] # TODO this assumes that compile_flags.txt is in the root project directory
             self.compiler_args = self.root_project_directory + default_compiler_args + [line.rstrip('\n') for line in open(filename)]
@@ -68,7 +70,7 @@ class CompilerArgs():
         def get(self, filename):
             return self.compiler_args
 
-    class FallbackCompilationDatabase():
+    class FallbackCompilationDatabase(object):
         def __init__(self, default_compiler_args):
             self.default_compiler_args = default_compiler_args
 

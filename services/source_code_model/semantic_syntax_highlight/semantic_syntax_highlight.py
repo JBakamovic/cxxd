@@ -1,8 +1,10 @@
+from builtins import str
+from builtins import object
 import logging
 from cxxd.parser.ast_node_identifier import ASTNodeId
 from cxxd.parser.clang_parser import ChildVisitResult
 
-class SemanticSyntaxHighlight():
+class SemanticSyntaxHighlight(object):
     def __init__(self, parser):
         self.parser = parser
 

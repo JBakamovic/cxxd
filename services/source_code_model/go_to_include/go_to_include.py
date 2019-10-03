@@ -1,4 +1,6 @@
-class GoToInclude():
+from builtins import str
+from builtins import object
+class GoToInclude(object):
     def __init__(self, parser):
         self.parser = parser
 

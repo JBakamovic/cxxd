@@ -1,4 +1,6 @@
-class TypeDeduction():
+from builtins import str
+from builtins import object
+class TypeDeduction(object):
     def __init__(self, parser):
         self.parser = parser
 

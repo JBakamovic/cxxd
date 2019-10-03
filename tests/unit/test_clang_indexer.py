@@ -1,9 +1,12 @@
+from __future__ import division
+from __future__ import absolute_import
+from past.utils import old_div
 import clang.cindex
 import mock
 import os
 import unittest
 
-import cxxd_mocks
+from  import cxxd_mocks
 import parser.ast_node_identifier
 import parser.clang_parser
 import parser.tunit_cache
@@ -214,7 +217,7 @@ class ClangIndexerTest(unittest.TestCase):
         mock_symbol_db_open.assert_called_once_with(self.service.symbol_db_path)
         mock_symbol_db_create_data_model.assert_called_once()
         mock_get_cpp_file_list.assert_called_once_with(self.service.root_directory, self.service.blacklisted_directories, self.service.recognized_file_extensions + self.service.extra_file_extensions)
-        mock_slice_it.assert_called_once_with(cpp_file_list, len(cpp_file_list)/multiprocessing.cpu_count())
+        mock_slice_it.assert_called_once_with(cpp_file_list, old_div(len(cpp_file_list),multiprocessing.cpu_count()))
         mock_create_indexer_input_list_file.assert_called_with(self.service.root_directory, mock.ANY, mock_slice_it.return_value[len(cpp_file_list_chunks)-1])
         mock_create_empty_symbol_db.assert_called_with(self.service.root_directory, self.service.symbol_db_name)
         mock_start_indexing_subprocess.assert_called_with(self.service.root_directory, self.txt_compilation_database.name, mock_create_indexer_input_list_file.return_value[1], mock_create_empty_symbol_db.return_value[1], mock.ANY)

@@ -1,9 +1,12 @@
+from __future__ import absolute_import
+from builtins import str
+from builtins import object
 import clang.cindex
 import logging
 import os
 import sys
-from ast_node_identifier import ASTNodeId
-from compiler_args import CompilerArgs
+from . ast_node_identifier import ASTNodeId
+from . compiler_args import CompilerArgs
 
 class ChildVisitResult(clang.cindex.BaseEnumeration):
     """
@@ -57,7 +60,7 @@ New version provides more functionality (i.e. AST parent node) which is needed i
 """
 clang.cindex.Cursor.get_children = get_children_patched
 
-class ClangParser():
+class ClangParser(object):
     def __init__(self, compiler_args_filename, tunit_cache):
         clang.cindex.library_path = None
         clang.cindex.library_file = None

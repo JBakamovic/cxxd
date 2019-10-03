@@ -1,10 +1,11 @@
+from __future__ import absolute_import
 import mock
 import os
 import unittest
 
 import parser.clang_parser
 import parser.tunit_cache
-from file_generator import FileGenerator
+from . file_generator import FileGenerator
 
 class SourceCodeModelGoToDefinitionTest(unittest.TestCase):
     @classmethod
@@ -25,7 +26,7 @@ class SourceCodeModelGoToDefinitionTest(unittest.TestCase):
         FileGenerator.close_gen_file(cls.txt_compilation_database)
 
     def setUp(self):
-        import cxxd_mocks
+        from . import cxxd_mocks
         from services.source_code_model.go_to_definition.go_to_definition import GoToDefinition
         self.project_root_directory = os.path.dirname(self.test_file.name)
         self.service = GoToDefinition(self.parser, cxxd_mocks.SymbolDatabaseMock(), self.project_root_directory)

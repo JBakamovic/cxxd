@@ -1,4 +1,5 @@
-class SymbolDatabaseMock():
+from builtins import object
+class SymbolDatabaseMock(object):
     def get_symbol_filename(self, row):
         pass
 
@@ -11,7 +12,7 @@ class SymbolDatabaseMock():
     def fetch_symbol_definition_by_usr(self, usr):
         pass
 
-class ServiceMock():
+class ServiceMock(object):
     def send_startup_request(self, payload):
         pass
 
@@ -21,7 +22,7 @@ class ServiceMock():
     def send_request(self, payload):
         pass
 
-class ServicePluginMock():
+class ServicePluginMock(object):
     def startup_callback(self, success, payload):
         pass
 
@@ -31,8 +32,8 @@ class ServicePluginMock():
     def __call__(self, success, payload, args):
         pass
 
-class SourceLocationMock():
-    class File:
+class SourceLocationMock(object):
+    class File(object):
         def __init__(self, filename):
             self.filename = filename
 
@@ -49,7 +50,7 @@ class SourceLocationMock():
     def file(self):
         return self.file
 
-class DiagnosticMock():
+class DiagnosticMock(object):
     def __init__(self, location, spelling, severity, children):
         self._location = location
         self._spelling = spelling
@@ -72,7 +73,7 @@ class DiagnosticMock():
     def children(self):
         return self._children
 
-class TranslationUnitMock():
+class TranslationUnitMock(object):
     def __init__(self, filename, diagnostics=None):
         self.filename = filename
         self.diag = diagnostics
@@ -85,7 +86,7 @@ class TranslationUnitMock():
     def diagnostics(self):
         return self.diag
 
-class CxxdConfigParserMock():
+class CxxdConfigParserMock(object):
     def get_configuration_for_target(self, target):
         return './'
 

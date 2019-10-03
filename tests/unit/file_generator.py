@@ -1,10 +1,11 @@
+from builtins import object
 import os
 import tempfile
 
-class FileGenerator():
+class FileGenerator(object):
     @staticmethod
     def gen_header_file_containing_includes_only(edited=False):
-        fd = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
+        fd = tempfile.NamedTemporaryFile(suffix='.cpp')
         if edited:
             fd.write('\
 #include <vector>           \n\
@@ -21,7 +22,7 @@ class FileGenerator():
 
     @staticmethod
     def gen_simple_cpp_file(edited=False):
-        fd = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
+        fd = tempfile.NamedTemporaryFile(suffix='.cpp', mode='w')
         if edited:
             fd.write('\
 #include <vector>           \n\
@@ -62,7 +63,7 @@ int fun() {                 \n\
 
     @staticmethod
     def gen_broken_cpp_file(edited=False):
-        fd = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
+        fd = tempfile.NamedTemporaryFile(suffix='.cpp', mode='w')
         if edited:
             fd.write('\
 #include <vector>           \n\
@@ -114,13 +115,13 @@ int fun() {                 \n\
             '-Wconversion',
             '-Winline',
         ]
-        fd = open(tempfile.gettempdir() + os.path.sep + 'compile_flags.txt', 'w', 0)
+        fd = open(tempfile.gettempdir() + os.path.sep + 'compile_flags.txt', 'w')
         fd.write('\n'.join(txt_compile_flags))
         return fd
 
     @staticmethod
     def gen_json_compilation_database(filename):
-        fd = open(tempfile.gettempdir() + os.path.sep + 'compile_commands.json', 'w', 0)
+        fd = open(tempfile.gettempdir() + os.path.sep + 'compile_commands.json', 'w')
         fd.write(('\
 [                                               \n\
 {{                                              \n\
@@ -134,7 +135,7 @@ int fun() {                 \n\
 
     @staticmethod
     def gen_clang_format_config_file():
-        fd = tempfile.NamedTemporaryFile(suffix='.clang-format', bufsize=0)
+        fd = tempfile.NamedTemporaryFile(suffix='.clang-format')
         fd.write('\
 BasedOnStyle: LLVM                      \n\
 AccessModifierOffset: -4                \n\
@@ -151,14 +152,14 @@ TabWidth: 4                             \n\
 
     @staticmethod
     def gen_cxxd_config_filename_with_invalid_section(sections):
-        fd = open(tempfile.gettempdir() + os.path.sep + '.cxxd_config.json', 'w', 0)
+        fd = open(tempfile.gettempdir() + os.path.sep + '.cxxd_config.json', 'w')
         for section in sections:
             fd.write(section)
         return fd
 
     @staticmethod
     def gen_cxxd_config_filename(target, config_path, config_type='compilation-database'):
-        fd = open(tempfile.gettempdir() + os.path.sep + '.cxxd_config.json', 'w', 0)
+        fd = open(tempfile.gettempdir() + os.path.sep + '.cxxd_config.json', 'w')
         fd.write('\
 {                                               \n\
     "configuration" : {                         \n\
@@ -223,7 +224,7 @@ TabWidth: 4                             \n\
 
     @staticmethod
     def gen_empty_cxxd_config_filename():
-        fd = open(tempfile.gettempdir() + os.path.sep + '.empty_cxxd_config.json', 'w', 0)
+        fd = open(tempfile.gettempdir() + os.path.sep + '.empty_cxxd_config.json', 'w')
         fd.write('\
 {                                               \n\
     "indexer" : {                               \n\

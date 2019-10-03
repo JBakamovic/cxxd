@@ -1,7 +1,9 @@
+from builtins import str
+from builtins import object
 import logging
 import os
 
-class GoToDefinition():
+class GoToDefinition(object):
     def __init__(self, parser, symbol_db, project_root_directory):
         self.parser = parser
         self.symbol_db = symbol_db

@@ -1,8 +1,9 @@
+from __future__ import absolute_import
 import unittest
 
 import parser.clang_parser
 import parser.tunit_cache
-from file_generator import FileGenerator
+from . file_generator import FileGenerator
 
 class GoToIncludeTest(unittest.TestCase):
     @classmethod
@@ -27,7 +28,7 @@ class GoToIncludeTest(unittest.TestCase):
         FileGenerator.close_gen_file(cls.txt_compilation_database)
 
     def setUp(self):
-        import cxxd_mocks
+        from . import cxxd_mocks
         from services.source_code_model.go_to_include.go_to_include import GoToInclude
         self.service = GoToInclude(self.parser)
 

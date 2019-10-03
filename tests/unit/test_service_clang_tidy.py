@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import os
 import unittest
 
@@ -20,7 +21,7 @@ class ClangTidyWithCompilationDatabaseTest(unittest.TestCase):
         FileGenerator.close_gen_file(cls.cxxd_config_with_json_comp_db)
 
     def setUp(self):
-        import cxxd_mocks
+        from  import cxxd_mocks
         from services.clang_tidy_service import ClangTidy
         self.service = ClangTidy(self.project_root_directory, CxxdConfigParser(self.cxxd_config_with_json_comp_db.name, self.project_root_directory), self.target, cxxd_mocks.ServicePluginMock())
 
@@ -78,7 +79,7 @@ class ClangTidyWithTxtConfigTest(unittest.TestCase):
         FileGenerator.close_gen_file(cls.cxxd_config_with_simple_txt)
 
     def setUp(self):
-        import cxxd_mocks
+        from  import cxxd_mocks
         from services.clang_tidy_service import ClangTidy
         self.service = ClangTidy(self.project_root_directory, CxxdConfigParser(self.cxxd_config_with_simple_txt.name, self.project_root_directory), self.target, cxxd_mocks.ServicePluginMock())
 
@@ -99,7 +100,7 @@ class ClangTidyWithNoConfigAvailable(unittest.TestCase):
         FileGenerator.close_gen_file(cls.file_to_perform_clang_tidy_on)
 
     def setUp(self):
-        import cxxd_mocks
+        from  import cxxd_mocks
         from services.clang_tidy_service import ClangTidy
         self.service = ClangTidy(self.project_root_directory, CxxdConfigParser('inexisting_config_file', self.project_root_directory), self.target, cxxd_mocks.ServicePluginMock())
 

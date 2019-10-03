@@ -1,3 +1,4 @@
+from builtins import str
 import sys, subprocess
 
 args = ' '.join(str(arg) for arg in sys.argv[1:])

@@ -1,7 +1,8 @@
+from builtins import object
 import os
 from collections import OrderedDict
 
-class NoCache():
+class NoCache(object):
     def __init__(self):
         pass
 
@@ -32,18 +33,18 @@ class NoCache():
     def __len__(self):
         return 0
 
-class UnlimitedCache():
+class UnlimitedCache(object):
     def __init__(self):
         self.store = {}
 
     def iterkeys(self):
-        return self.store.iterkeys()
+        return iter(self.store.keys())
 
     def itervalues(self):
-        return self.store.itervalues()
+        return iter(self.store.values())
 
     def iteritems(self):
-        return self.store.iteritems()
+        return iter(self.store.items())
 
     def __getitem__(self, key):
         return self.store[key]
@@ -62,19 +63,19 @@ class UnlimitedCache():
     def __len__(self):
         return len(self.store)
 
-class FifoCache():
+class FifoCache(object):
     def __init__(self, max_capacity):
         self.max_capacity = max_capacity
         self.store = OrderedDict()
 
     def iterkeys(self):
-        return self.store.iterkeys()
+        return iter(self.store.keys())
 
     def itervalues(self):
-        return self.store.itervalues()
+        return iter(self.store.values())
 
     def iteritems(self):
-        return self.store.iteritems()
+        return iter(self.store.items())
 
     def __getitem__(self, key):
         return self.store[key]
@@ -96,7 +97,7 @@ class FifoCache():
     def __len__(self):
         return len(self.store)
 
-class TranslationUnitCache():
+class TranslationUnitCache(object):
     def __init__(self, cache_impl):
         self.tunit = cache_impl
 
@@ -113,13 +114,13 @@ class TranslationUnitCache():
         self.insert(tunit_filename, tunit, build_flags, mtime)
 
     def iterkeys(self):
-        return self.tunit.iterkeys()
+        return iter(self.tunit.keys())
 
     def itervalues(self):
-        return self.tunit.itervalues()
+        return iter(self.tunit.values())
 
     def iteritems(self):
-        return self.tunit.iteritems()
+        return iter(self.tunit.items())
 
     def __setitem__(self, key, item):
         self.insert(key, item)

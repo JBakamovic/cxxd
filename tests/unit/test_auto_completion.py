@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import clang.cindex
 import mock
 import os

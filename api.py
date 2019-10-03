@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from server import ServiceId
 from server import ServerRequestId
 from services.source_code_model_service import SourceCodeModelSubServiceId

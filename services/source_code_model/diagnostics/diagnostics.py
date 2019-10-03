@@ -1,4 +1,5 @@
-class Diagnostics():
+from builtins import object
+class Diagnostics(object):
     def __init__(self, parser):
         self.parser = parser
 

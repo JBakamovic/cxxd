@@ -1,8 +1,9 @@
+from builtins import object
 import logging
 import sqlite3
 import sys
 
-class DiagnosticsSortingStrategyId():
+class DiagnosticsSortingStrategyId(object):
     BY_NONE          = 0x0
     BY_SEVERITY_ASC  = 0x1
     BY_SEVERITY_DESC = 0x2

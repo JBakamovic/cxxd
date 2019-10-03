@@ -1,3 +1,4 @@
+from builtins import object
 import sys
 import time
 import shlex
@@ -17,12 +18,12 @@ def file_type_to_programming_language(file_type):
         'Cxx': ['.c', '.cpp', '.cc', '.h', '.hh', '.hpp'],
         'Java': ['.java']
     }
-    for lang, file_types in file_type_dict.iteritems():
+    for lang, file_types in file_type_dict.items():
         if file_type in file_types:
             return lang
     return ''
 
-class IndexerBase():
+class IndexerBase(object):
     def __init__(self, root_directory, tags_filename):
         self.root_directory = root_directory
         self.tags_filename = tags_filename
@@ -277,7 +278,7 @@ class FileSystemEventHandler(FileSystemEventHandler):
                 self.indexer.update(event.src_path, event.event_type)
             self.last_event = event.event_type
 
-class SourceCodeIndexerFactory():
+class SourceCodeIndexerFactory(object):
     @staticmethod
     def getIndexer(programming_language, params):
         if (programming_language == 'Cxx'):
@@ -293,7 +294,7 @@ class SourceCodeIndexerFactory():
         else:
             return
 
-class IndexerParams():
+class IndexerParams(object):
     def __init__(self, vim_instance, file_types, proj_root_directory,
                  proj_cxx_tags_filename, proj_java_tags_filename, proj_cscope_db_filename):
         self.vim_instance            = vim_instance
@@ -303,7 +304,7 @@ class IndexerParams():
         self.proj_java_tags_filename = proj_java_tags_filename
         self.proj_cscope_db_filename = proj_cscope_db_filename
 
-class Indexer():
+class Indexer(object):
     def __init__(self, params):
         self.file_types_whitelist = params.file_types
         self.indexers             = {}

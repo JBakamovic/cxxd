@@ -1,9 +1,10 @@
+from builtins import object
 import ctypes
 import multiprocessing
 
 from cxxd.services.source_code_model_service import SourceCodeModelSubServiceId
 
-class TypeDeductionCallbackResult():
+class TypeDeductionCallbackResult(object):
     TYPE_DEDUCTION_SPELLING_LENGTH_MAX = 50
 
     def __init__(self):
@@ -26,7 +27,7 @@ class TypeDeductionCallbackResult():
         return self.type_deduction_spelling.value
 
 
-class GoToDefinitionCallbackResult():
+class GoToDefinitionCallbackResult(object):
     DEFINITION_FILENAME_LENGTH_MAX = 150
 
     def __init__(self):
@@ -61,7 +62,7 @@ class GoToDefinitionCallbackResult():
     def column(self):
         return self.go_to_definition_column.value
 
-class GoToIncludeCallbackResult():
+class GoToIncludeCallbackResult(object):
     INCLUDE_FILENAME_LENGTH_MAX = 150
 
     def __init__(self):
@@ -83,7 +84,7 @@ class GoToIncludeCallbackResult():
     def filename(self):
         return self.go_to_include_filename.value
 
-class SemanticSyntaxHighlightCallbackResult():
+class SemanticSyntaxHighlightCallbackResult(object):
     TUNIT_FILENAME_LENGTH_MAX = 150
 
     def __init__(self):
@@ -119,7 +120,7 @@ class SemanticSyntaxHighlightCallbackResult():
     def num_of_ast_nodes(self):
         return self.semantic_syntax_highlight_num_of_ast_nodes.value
 
-class DiagnosticsCallbackResult():
+class DiagnosticsCallbackResult(object):
     def __init__(self):
         self.diagnostics_status = multiprocessing.Value(ctypes.c_bool, False)
 
@@ -133,7 +134,7 @@ class DiagnosticsCallbackResult():
     def status(self):
         return self.diagnostics_status.value
 
-class IndexerCallbackResult():
+class IndexerCallbackResult(object):
     def __init__(self):
         self.indexer_status = multiprocessing.Value(ctypes.c_bool, False)
         self.indexer_num_of_references = multiprocessing.Value(ctypes.c_int, 0)
@@ -172,7 +173,7 @@ class IndexerCallbackResult():
     def num_of_diagnostics(self):
         return self.indexer_num_of_diagnostics.value
 
-class AutoCompletionCallbackResult():
+class AutoCompletionCallbackResult(object):
     def __init__(self):
         self.status = multiprocessing.Value(ctypes.c_bool, False)
         self.num_of_code_complete_candidates = multiprocessing.Value(ctypes.c_int, 0)
@@ -197,7 +198,7 @@ class AutoCompletionCallbackResult():
     def num_of_code_complete_candidates(self):
         return self.num_of_code_complete_candidates.value
 
-class SourceCodeModelCallbackResult():
+class SourceCodeModelCallbackResult(object):
     def __init__(self):
         self.type = {
             'type_deduction'     : TypeDeductionCallbackResult(),
@@ -234,13 +235,13 @@ class SourceCodeModelCallbackResult():
         self.wait_on_completion.release()
 
     def reset(self):
-        for key, callback_result in self.type.iteritems():
+        for key, callback_result in self.type.items():
             callback_result.reset()
 
     def __getitem__(self, key):
         return self.type.get(key, None)
 
-class ClangFormatCallbackResult():
+class ClangFormatCallbackResult(object):
     def __init__(self):
         self.wait_on_completion = multiprocessing.Semaphore(0)
         self.clang_format_status = multiprocessing.Value(ctypes.c_bool, False)
@@ -259,7 +260,7 @@ class ClangFormatCallbackResult():
     def status(self):
         return self.clang_format_status.value
 
-class ClangTidyCallbackResult():
+class ClangTidyCallbackResult(object):
     OUTPUT_FILENAME_LENGTH_MAX = 150
 
     def __init__(self):
@@ -287,7 +288,7 @@ class ClangTidyCallbackResult():
     def output(self):
         return self.clang_tidy_output.value
 
-class ProjectBuilderCallbackResult():
+class ProjectBuilderCallbackResult(object):
     OUTPUT_FILENAME_LENGTH_MAX = 150
 
     def __init__(self):

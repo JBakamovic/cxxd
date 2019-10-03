@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import os
 import unittest
 
@@ -20,7 +21,7 @@ class ClangFormatTest(unittest.TestCase):
         FileGenerator.close_gen_file(cls.cxxd_config)
 
     def setUp(self):
-        import cxxd_mocks
+        from  import cxxd_mocks
         from services.clang_format_service import ClangFormat
         self.service = ClangFormat(self.project_root_directory, CxxdConfigParser(self.cxxd_config.name, self.project_root_directory), cxxd_mocks.ServicePluginMock())
 

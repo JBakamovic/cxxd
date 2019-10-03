@@ -1,9 +1,10 @@
+from builtins import object
 import distutils.spawn
 import json
 import logging
 import os
 
-class CxxdConfigParser():
+class CxxdConfigParser(object):
     def __init__(self, cxxd_config_filename, project_root_directory):
         self.try_harder_search_paths = [
             '.', 'build', 'build_cmake', 'cmake_build', \
@@ -199,7 +200,7 @@ class CxxdConfigParser():
         args = []
         if 'clang-tidy' in config:
             if 'args' in config['clang-tidy']:
-                for arg, value in config['clang-tidy']['args'].iteritems():
+                for arg, value in config['clang-tidy']['args'].items():
                     args.append((arg, value),)
         return args
 
@@ -213,7 +214,7 @@ class CxxdConfigParser():
         args = []
         if 'clang-format' in config:
             if 'args' in config['clang-format']:
-                for arg, value in config['clang-format']['args'].iteritems():
+                for arg, value in config['clang-format']['args'].items():
                     args.append((arg, value),)
         return args
 
@@ -227,7 +228,7 @@ class CxxdConfigParser():
         args = []
         if 'project-builder' in config:
             if 'args' in config['project-builder']:
-                for arg, value in config['project-builder']['args'].iteritems():
+                for arg, value in config['project-builder']['args'].items():
                     args.append((arg, value),)
         return args
 

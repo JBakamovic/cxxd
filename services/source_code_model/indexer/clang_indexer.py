@@ -1,3 +1,9 @@
+from __future__ import division
+from __future__ import absolute_import
+from builtins import zip
+from builtins import str
+from past.utils import old_div
+from builtins import object
 import linecache
 import logging
 import multiprocessing
@@ -11,14 +17,14 @@ from cxxd.parser.clang_parser import ClangParser
 from cxxd.parser.tunit_cache import TranslationUnitCache, NoCache
 from cxxd.parser.ast_node_identifier import ASTNodeId
 from cxxd.parser.clang_parser import ChildVisitResult
-from symbol_database import SymbolDatabase
+from . symbol_database import SymbolDatabase
 
 # TODO move this to utils
 import itertools
 def slice_it(iterable, n, padvalue=None):
-    return itertools.izip_longest(*[iter(iterable)]*n, fillvalue=padvalue)
+    return itertools.zip_longest(*[iter(iterable)]*n, fillvalue=padvalue)
 
-class SourceCodeModelIndexerRequestId():
+class SourceCodeModelIndexerRequestId(object):
     RUN_ON_SINGLE_FILE        = 0x0
     RUN_ON_DIRECTORY          = 0x1
     DROP_SINGLE_FILE          = 0x2
@@ -117,7 +123,7 @@ class ClangIndexer(object):
             indexer_input_list = []
 
             # We will slice the input file list into a number of chunks which corresponds to the amount of available CPU cores
-            how_many_chunks = len(cpp_file_list) / multiprocessing.cpu_count()
+            how_many_chunks = old_div(len(cpp_file_list), multiprocessing.cpu_count())
 
             # Now we are able to parallelize the indexing operation across different CPU cores
             for cpp_file_list_chunk in slice_it(cpp_file_list, how_many_chunks):

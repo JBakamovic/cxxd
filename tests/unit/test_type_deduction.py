@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import unittest
 
 import parser.clang_parser
@@ -27,7 +28,7 @@ class TypeDeductionTest(unittest.TestCase):
         FileGenerator.close_gen_file(cls.txt_compilation_database)
 
     def setUp(self):
-        import cxxd_mocks
+        from  import cxxd_mocks
         from services.source_code_model.type_deduction.type_deduction import TypeDeduction
         self.service = TypeDeduction(self.parser)
 
