@@ -20,7 +20,7 @@ ext_dep = {
 
 # We have to provide a factory method to instantiate the server the way we want ...
 def get_server_instance(handle, proj_root_directory, target_configuration, args):
-    source_code_model_cb_result, clang_format_cb_result, clang_tidy_cb_result, project_builder_cb_result  = args
+    source_code_model_cb_result, clang_format_cb_result, clang_tidy_cb_result, project_builder_cb_result, code_completion_cb_result  = args
     return cxxd.server.Server(
         handle,
         proj_root_directory,
@@ -28,7 +28,8 @@ def get_server_instance(handle, proj_root_directory, target_configuration, args)
         cxxd_plugins.SourceCodeModelServicePluginMock(source_code_model_cb_result),
         cxxd_plugins.ProjectBuilderServicePluginMock(project_builder_cb_result),
         cxxd_plugins.ClangFormatServicePluginMock(clang_format_cb_result),
-        cxxd_plugins.ClangTidyServicePluginMock(clang_tidy_cb_result)
+        cxxd_plugins.ClangTidyServicePluginMock(clang_tidy_cb_result),
+        cxxd_plugins.CodeCompletionServicePluginMock(code_completion_cb_result)
     )
 
 # compile_commands.json is what we have to have in order to run the integration tests
@@ -81,6 +82,7 @@ class CxxdIntegrationTest(unittest.TestCase):
         cls.clang_format_cb_result = cxxd_callbacks.ClangFormatCallbackResult()
         cls.clang_tidy_cb_result = cxxd_callbacks.ClangTidyCallbackResult()
         cls.project_builder_cb_result = cxxd_callbacks.ProjectBuilderCallbackResult()
+        cls.code_completion_cb_result = cxxd_callbacks.AutoCompletionCallbackResult()
 
         # Start the cxxd server ...
         cls.handle = cxxd.api.server_start(
@@ -90,6 +92,7 @@ class CxxdIntegrationTest(unittest.TestCase):
                 cls.clang_format_cb_result,
                 cls.clang_tidy_cb_result,
                 cls.project_builder_cb_result,
+                cls.code_completion_cb_result,
             ),
             cls.proj_root_dir,
             cls.target_configuration,
