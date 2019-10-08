@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from builtins import object
 import logging
 import os
+import sys
 from multiprocessing import Process
 from . parser.cxxd_config_parser import CxxdConfigParser
 from . services.clang_format_service import ClangFormat
@@ -35,7 +36,7 @@ class Server(object):
             if self.is_started():
                 logging.warning("Service process already started!")
             else:
-                from service import service_listener
+                from . service import service_listener
                 self.process = Process(target=service_listener, args=(self.service,), name=self.service.__class__.__name__)
                 self.process.daemon = False
                 self.process.start()
@@ -167,7 +168,11 @@ class Server(object):
 
     def process_request(self):
         payload = self.handle.get()
-        still_running = self.action.get(int(payload[0]), self.__unknown_action)(int(payload[1]), payload[2])
+        try:
+            still_running = self.action.get(int(payload[0]), self.__unknown_action)(int(payload[1]), payload[2])
+        except:
+            logging.error(sys.exc_info())
+            still_running = True
         return still_running
 
     def is_started_up(self):

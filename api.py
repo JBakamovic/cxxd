@@ -1,10 +1,10 @@
 from __future__ import absolute_import
-from server import ServiceId
-from server import ServerRequestId
-from services.source_code_model_service import SourceCodeModelSubServiceId
-from services.source_code_model.indexer.clang_indexer import SourceCodeModelIndexerRequestId
-from services.project_builder_service import ProjectBuilderRequestId
-from services.source_code_model.auto_completion.auto_completion import SourceCodeModelAutoCompletionRequestId
+from . server import ServiceId
+from . server import ServerRequestId
+from . services.source_code_model_service import SourceCodeModelSubServiceId
+from . services.source_code_model.indexer.clang_indexer import SourceCodeModelIndexerRequestId
+from . services.project_builder_service import ProjectBuilderRequestId
+from . services.source_code_model.auto_completion.auto_completion import SourceCodeModelAutoCompletionRequestId
 
 #
 # Server API
@@ -40,14 +40,16 @@ def server_start(get_server_instance, get_server_instance_args, project_root_dir
         logging.info('Starting a server for {0}'.format(project_root_directory))
 
         # Setup catching unhandled exceptions
-        __catch_unhandled_exceptions()
+        #__catch_unhandled_exceptions()
 
         # Instantiate and run the server
-        try:
-            from server import server_listener
-            server_listener(get_server_instance(handle, project_root_directory, target_configuration, args))
-        except:
-            sys.excepthook(*sys.exc_info())
+        logging.info("Server listener starting up 1...")
+        from . server import server_listener
+        server_listener(get_server_instance(handle, project_root_directory, target_configuration, args))
+        logging.info("Server listener starting up 2...")
+        #try:
+        #except:
+        #    sys.excepthook(*sys.exc_info())
 
     server_queue = multiprocessing.Queue()
     server_process = multiprocessing.Process(
