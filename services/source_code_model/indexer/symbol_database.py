@@ -50,7 +50,7 @@ class SymbolDatabase(object):
         return self.db_connection is not None
 
     def get_symbol_filename(self, row):
-        return row[0].encode('utf8', 'ignore')
+        return row[0]
 
     def get_symbol_line(self, row):
         return row[1]
@@ -59,10 +59,10 @@ class SymbolDatabase(object):
         return row[2]
 
     def get_symbol_usr(self, row):
-        return row[3].encode('utf8', 'ignore')
+        return row[3]
 
     def get_symbol_context(self, row):
-        return row[4].encode('utf8', 'ignore')
+        return row[4]
 
     def get_symbol_kind(self, row):
         return row[5]
@@ -74,7 +74,7 @@ class SymbolDatabase(object):
         return row[0]
 
     def get_diagnostics_filename(self, row):
-        return row[1].encode('utf8', 'ignore')
+        return row[1]
 
     def get_diagnostics_line(self, row):
         return row[2]
@@ -83,7 +83,7 @@ class SymbolDatabase(object):
         return row[3]
 
     def get_diagnostics_description(self, row):
-        return row[4].encode('utf8', 'ignore')
+        return row[4]
 
     def get_diagnostics_severity(self, row):
         return row[5]
@@ -92,7 +92,7 @@ class SymbolDatabase(object):
         return row[0]
 
     def get_diagnostics_details_filename(self, row):
-        return row[1].encode('utf8', 'ignore')
+        return row[1]
 
     def get_diagnostics_details_line(self, row):
         return row[2]
@@ -101,7 +101,7 @@ class SymbolDatabase(object):
         return row[3]
 
     def get_diagnostics_details_description(self, row):
-        return row[4].encode('utf8', 'ignore')
+        return row[4]
 
     def get_diagnostics_details_severity(self, row):
         return row[5]
