@@ -86,6 +86,10 @@ class Server(object):
         self.started_up = True
         self.configuration = self.cxxd_config_parser.get_configuration_for_target(target)
         if self.configuration:
+            clang_library_file = self.cxxd_config_parser.get_clang_library_file()
+            if clang_library_file is not None:
+                import clang.cindex
+                clang.cindex.Config.set_library_file(clang_library_file)
             self.service = {
                 ServiceId.SOURCE_CODE_MODEL : self.ServiceHandler(SourceCodeModel(project_root_directory, self.cxxd_config_parser, target, source_code_model_plugin)),
                 ServiceId.PROJECT_BUILDER   : self.ServiceHandler(ProjectBuilder(project_root_directory, self.cxxd_config_parser, target, project_builder_plugin)),
