@@ -58,7 +58,9 @@ New version provides more functionality (i.e. AST parent node) which is needed i
 clang.cindex.Cursor.get_children = get_children_patched
 
 class ClangParser():
-    def __init__(self, compiler_args_filename, tunit_cache):
+    def __init__(self, compiler_args_filename, tunit_cache, clang_library_file=None):
+        if clang_library_file is not None:
+            clang.cindex.Config.set_library_file(clang_library_file)
         self.index         = clang.cindex.Index.create()
         self.compiler_args = CompilerArgs(compiler_args_filename)
         self.tunit_cache   = tunit_cache

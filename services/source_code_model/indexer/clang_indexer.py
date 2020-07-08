@@ -261,7 +261,8 @@ class ClangIndexer(object):
 def index_file_list(root_directory, input_filename_list, compiler_args_filename, output_db_filename):
     symbol_db = SymbolDatabase(output_db_filename)
     symbol_db.create_data_model()
-    parser = ClangParser(compiler_args_filename, TranslationUnitCache(NoCache()))
+    cxxd_config_parser = CxxdConfigParser(os.path.join(root_directory, '.cxxd_config.json'), root_directory)
+    parser = ClangParser(compiler_args_filename, TranslationUnitCache(NoCache()), cxxd_config_parser.get_clang_library_file())
     with open(input_filename_list, 'r') as input_list:
         for filename in input_list.readlines():
             index_single_file(parser, root_directory, filename.strip(), filename.strip(), symbol_db)

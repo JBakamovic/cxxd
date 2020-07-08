@@ -26,7 +26,8 @@ class SourceCodeModel(cxxd.service.Service):
         self.cxxd_config_parser = cxxd_config_parser
         self.parser = cxxd.parser.clang_parser.ClangParser(
             cxxd_config_parser.get_configuration_for_target(target),
-            cxxd.parser.tunit_cache.TranslationUnitCache(cxxd.parser.tunit_cache.FifoCache(20))
+            cxxd.parser.tunit_cache.TranslationUnitCache(cxxd.parser.tunit_cache.FifoCache(20)),
+            cxxd_config_parser.get_clang_library_file()
         )
         self.clang_indexer = ClangIndexer(self.parser, self.project_root_directory, self.cxxd_config_parser)
         self.service = {

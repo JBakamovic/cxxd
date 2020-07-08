@@ -22,6 +22,7 @@ class CxxdConfigParser():
         self.project_builder_args = []
         self.project_builder_targets = []
         self.project_root_directory = project_root_directory
+        self.clang_library_file = None
         if os.path.exists(cxxd_config_filename):
             with open(cxxd_config_filename) as f:
                 config = json.load(f)
@@ -35,6 +36,7 @@ class CxxdConfigParser():
                 self.clang_tidy_binary_path = self._extract_clang_tidy_binary_path(config)
                 self.clang_format_args = self._extract_clang_format_args(config)
                 self.clang_format_binary_path = self._extract_clang_format_binary_path(config)
+                self.clang_library_file = self._extract_clang_library_file(config)
                 self.project_builder_args = self._extract_project_builder_args(config)
                 self.project_builder_targets = self._extract_project_builder_targets(config)
         if not self.clang_tidy_binary_path:
@@ -49,6 +51,7 @@ class CxxdConfigParser():
         logging.info('Clang-tidy binary path {0}'.format(self.clang_tidy_binary_path))
         logging.info('Clang-format args {0}'.format(self.clang_format_args))
         logging.info('Clang-format binary path {0}'.format(self.clang_format_binary_path))
+        logging.info('Clang library-file {0}'.format(self.clang_library_file))
         logging.info('Project-builder args {0}'.format(self.project_builder_args))
         logging.info('Project-builder targets {0}'.format(self.project_builder_targets))
 
@@ -75,6 +78,9 @@ class CxxdConfigParser():
 
     def get_clang_format_binary_path(self):
         return self.clang_format_binary_path
+
+    def get_clang_library_file(self):
+        return self.clang_library_file
 
     def get_project_builder_args(self):
         return self.project_builder_args
@@ -236,6 +242,12 @@ class CxxdConfigParser():
                 for arg, value in config['project-builder']['args'].iteritems():
                     args.append((arg, value),)
         return args
+
+    def _extract_clang_library_file(self, config):
+        if 'clang' in config:
+            if 'library-file' in config['clang']:
+                return config['clang']['library-file']
+        return None
 
     def _extract_project_builder_targets(self, config):
         targets = {}
