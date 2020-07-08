@@ -180,11 +180,11 @@ class SymbolDatabase(object):
             if unique_id != '':
                 self.db_connection.cursor().execute('INSERT INTO symbol VALUES (?, ?, ?, ?, ?, ?, ?)',
                     (
-                        filename.decode('utf8', 'ignore') if isinstance(filename, str) else filename,     # NOTE Decoding an already UTF-8 encoded
-                        line,                                                                   #      string (unicode) raises an exception.
-                        column,                                                                 #      Therefore 'isinstance' check.
-                        unique_id.decode('utf8', 'ignore') if isinstance(unique_id, str) else unique_id,
-                        context.decode('utf8', 'ignore') if isinstance(context, str) else context,
+                        filename,
+                        line,
+                        column,
+                        unique_id,
+                        context,
                         symbol_kind,
                         is_definition,
                     )
@@ -206,10 +206,10 @@ class SymbolDatabase(object):
             cursor = self.db_connection.cursor()
             cursor.execute('INSERT INTO diagnostics(filename, line, column, description, severity) VALUES (?, ?, ?, ?, ?)',
                 (
-                    filename.decode('utf8', 'ignore') if isinstance(filename, str) else filename,     # NOTE Decoding an already UTF-8 encoded
-                    line,                                                                   #      string (unicode) raises an exception.
-                    column,                                                                 #      Therefore 'isinstance' check.
-                    description.decode('utf8', 'ignore') if isinstance(description, str) else description,
+                    filename,
+                    line,
+                    column,
+                    description,
                     severity,
                 )
             )
@@ -231,10 +231,10 @@ class SymbolDatabase(object):
             self.db_connection.cursor().execute('INSERT INTO diagnostics_details VALUES (?, ?, ?, ?, ?, ?)',
                 (
                     diagnostics_id,
-                    filename.decode('utf8', 'ignore') if isinstance(filename, str) else filename,     # NOTE Decoding an already UTF-8 encoded
-                    line,                                                                   #      string (unicode) raises an exception.
-                    column,                                                                 #      Therefore 'isinstance' check.
-                    description.decode('utf8', 'ignore') if isinstance(description, str) else description,
+                    filename,
+                    line,
+                    column,
+                    description,
                     severity,
                 )
             )
