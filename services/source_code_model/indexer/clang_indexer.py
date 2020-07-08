@@ -264,6 +264,9 @@ class ClangIndexer(object):
 def index_file_list(root_directory, input_filename_list, compiler_args_filename, output_db_filename):
     symbol_db = SymbolDatabase(output_db_filename)
     symbol_db.create_data_model()
+    clang_library_file = '/usr/lib64/llvm7.0/lib/libclang.so.7'
+    import clang.cindex
+    clang.cindex.Config.set_library_file(clang_library_file)
     parser = ClangParser(compiler_args_filename, TranslationUnitCache(NoCache()))
     with open(input_filename_list, 'r') as input_list:
         for filename in input_list.readlines():
