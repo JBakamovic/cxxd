@@ -27,10 +27,10 @@ class ProjectBuilder(cxxd.service.Service):
         return project_builder_args
 
     def startup_callback(self, args):
-        pass
+        return True, [self.build_cmd_output_file.name]
 
     def shutdown_callback(self, args):
-        pass
+        return True, []
 
     def __call__(self, args):
         build_cmd = args[0] + ' ' + self.build_args

@@ -43,10 +43,10 @@ class SourceCodeModel(cxxd.service.Service):
         return False, None
 
     def startup_callback(self, args):
-        pass
+        return True, []
 
     def shutdown_callback(self, args):
-        pass
+        return True, []
 
     def __call__(self, args):
         return self.service.get(int(args[0]), self.__unknown_service)(args[1:len(args)])

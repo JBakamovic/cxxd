@@ -28,11 +28,13 @@ class ClangFormat(cxxd.service.Service):
     def startup_callback(self, args):
         if self.clang_format_binary:
             logging.info('clang-format version: \'{0}\''.format(subprocess.check_output([self.clang_format_binary, '-version'])))
-        else:
-            logging.error('clang-format executable not found on your system path!')
+            return True, []
+
+        logging.error('clang-format executable not found on your system path!')
+        return False, []
 
     def shutdown_callback(self, args):
-        pass
+        return True, []
 
     def __call__(self, args):
         # TODO add support for range-based formatting (-offset, -length)

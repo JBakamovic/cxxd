@@ -21,17 +21,17 @@ class Service():
             logging.warning('Service is already started!')
         else:
             logging.info("Service startup ... Payload = {0}".format(payload))
-            self.startup_callback(payload)
-            self.service_plugin.startup_callback(True, payload)
-            self.started_up = True
+            status, startup_payload = self.startup_callback(payload)
+            self.service_plugin.startup_callback(status, payload, startup_payload)
+            self.started_up = status
         return self.started_up
 
     def __shutdown_request(self, payload):
         if self.started_up:
             logging.info("Service shutdown ... Payload = {0}".format(payload))
-            self.shutdown_callback(payload)
-            self.service_plugin.shutdown_callback(True, payload)
-            self.started_up = False
+            status, shutdown_payload = self.shutdown_callback(payload)
+            self.service_plugin.shutdown_callback(status, payload, shutdown_payload)
+            self.started_up = not status
         else:
             logging.warning('Service must be started before issuing any other kind of requests!')
         return self.started_up

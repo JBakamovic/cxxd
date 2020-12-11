@@ -48,10 +48,10 @@ class ClangTidy(cxxd.service.Service):
         return clang_tidy_args
 
     def startup_callback(self, args):
-        pass
+        return True, []
 
     def shutdown_callback(self, args):
-        pass
+        return True, []
 
     def __call__(self, args):
         filename, apply_fixes = args
