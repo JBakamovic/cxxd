@@ -2,6 +2,7 @@ from server import ServiceId
 from server import ServerRequestId
 from services.source_code_model_service import SourceCodeModelSubServiceId
 from services.source_code_model.indexer.clang_indexer import SourceCodeModelIndexerRequestId
+from services.project_builder_service import ProjectBuilderRequestId
 
 #
 # Server API
@@ -132,8 +133,11 @@ def project_builder_start(handle):
 def project_builder_stop(handle, subscribe_for_callback):
     _server_stop_service(handle, ServiceId.PROJECT_BUILDER, subscribe_for_callback)
 
-def project_builder_request(handle, build_command):
-    _server_request_service(handle, ServiceId.PROJECT_BUILDER, build_command)
+def project_builder_request_build_custom(handle, build_command):
+    _server_request_service(handle, ServiceId.PROJECT_BUILDER, ProjectBuilderRequestId.CUSTOM_CMD, build_command)
+
+def project_builder_request_build_target(handle):
+    _server_request_service(handle, ServiceId.PROJECT_BUILDER, ProjectBuilderRequestId.TARGET_BUILD_CONFIG_CMD)
 
 #
 # Clang-format service API

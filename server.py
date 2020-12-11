@@ -83,7 +83,7 @@ class Server():
         if self.configuration:
             self.service = {
                 ServiceId.SOURCE_CODE_MODEL : self.ServiceHandler(SourceCodeModel(project_root_directory, self.cxxd_config_parser, target, source_code_model_plugin)),
-                ServiceId.PROJECT_BUILDER   : self.ServiceHandler(ProjectBuilder(project_root_directory, self.cxxd_config_parser, project_builder_plugin)),
+                ServiceId.PROJECT_BUILDER   : self.ServiceHandler(ProjectBuilder(project_root_directory, self.cxxd_config_parser, target, project_builder_plugin)),
                 ServiceId.CLANG_FORMAT      : self.ServiceHandler(ClangFormat(project_root_directory, self.cxxd_config_parser, clang_format_plugin)),
                 ServiceId.CLANG_TIDY        : self.ServiceHandler(ClangTidy(project_root_directory, self.cxxd_config_parser, target, clang_tidy_plugin)),
             }
