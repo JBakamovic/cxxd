@@ -20,6 +20,7 @@ class CxxdConfigParser():
         self.clang_format_args = []
         self.clang_format_binary_path = None
         self.project_builder_args = []
+        self.project_builder_targets = []
         self.project_root_directory = project_root_directory
         if os.path.exists(cxxd_config_filename):
             with open(cxxd_config_filename) as f:
@@ -35,6 +36,7 @@ class CxxdConfigParser():
                 self.clang_format_args = self._extract_clang_format_args(config)
                 self.clang_format_binary_path = self._extract_clang_format_binary_path(config)
                 self.project_builder_args = self._extract_project_builder_args(config)
+                self.project_builder_targets = self._extract_project_builder_targets(config)
         if not self.clang_tidy_binary_path:
             self.clang_tidy_binary_path = self._find_system_wide_binary('clang-tidy')
         if not self.clang_format_binary_path:
@@ -48,6 +50,7 @@ class CxxdConfigParser():
         logging.info('Clang-format args {0}'.format(self.clang_format_args))
         logging.info('Clang-format binary path {0}'.format(self.clang_format_binary_path))
         logging.info('Project-builder args {0}'.format(self.project_builder_args))
+        logging.info('Project-builder targets {0}'.format(self.project_builder_targets))
 
     def get_configuration_type(self):
         return self.configuration_type;
@@ -75,6 +78,12 @@ class CxxdConfigParser():
 
     def get_project_builder_args(self):
         return self.project_builder_args
+
+    def get_project_builder_build_cmd(self, target):
+        return self._extract_project_builder_build_cmd(self.project_builder_targets, target)
+
+    def get_project_builder_build_dir(self, target):
+        return self._extract_project_builder_build_dir(self.configuration_selected, target)
 
     @staticmethod
     def is_file_blacklisted(directory_list, filename):
@@ -221,3 +230,21 @@ class CxxdConfigParser():
                 for arg, value in config['project-builder']['args'].iteritems():
                     args.append((arg, value),)
         return args
+
+    def _extract_project_builder_targets(self, config):
+        targets = {}
+        if 'project-builder' in config:
+            if 'target' in config['project-builder']:
+                for target, value in config['project-builder']['target'].items():
+                    targets[target] = value
+        return targets
+
+    def _extract_project_builder_build_cmd(self, project_builder_targets, target):
+        if target in project_builder_targets:
+            return project_builder_targets[target]['cmd']
+        return None
+
+    def _extract_project_builder_build_dir(self, configuration_selected, target):
+        if target in configuration_selected['target']:
+            return configuration_selected['target'][target]
+        return None
