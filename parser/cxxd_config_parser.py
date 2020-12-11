@@ -79,6 +79,12 @@ class CxxdConfigParser():
     def get_project_builder_args(self):
         return self.project_builder_args
 
+    def get_common_cpp_file_extensions(self):
+        return ['.cpp', '.cxx', '.cc', '.c', '.h', '.hh', '.hpp', '.hxx', '.tpp']
+
+    def get_project_cpp_file_extensions(self):
+        return self.get_common_cpp_file_extensions() + self.get_extra_file_extensions()
+
     def get_project_builder_build_cmd(self, target):
         return self._extract_project_builder_build_cmd(self.project_builder_targets, target)
 
