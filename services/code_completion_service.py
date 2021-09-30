@@ -17,9 +17,11 @@ class CodeCompletion(cxxd.service.Service):
         )
         self.code_completion = AutoCompletion(self.parser)
         logging.info('Code-completion service started.')
+        return True, []
 
     def shutdown_callback(self, args):
         logging.info('Code-completion service stopped.')
+        return True, []
 
     def __call__(self, args):
         return self.code_completion(args)

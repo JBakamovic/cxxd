@@ -5,6 +5,7 @@ from . services.source_code_model_service import SourceCodeModelSubServiceId
 from . services.source_code_model.indexer.clang_indexer import SourceCodeModelIndexerRequestId
 from . services.project_builder_service import ProjectBuilderRequestId
 from . services.source_code_model.auto_completion.auto_completion import SourceCodeModelAutoCompletionRequestId
+from . services.iwyu_service import IwyuRequestId
 
 #
 # Server API
@@ -185,6 +186,32 @@ def clang_tidy_stop(handle, subscribe_for_callback):
 def clang_tidy_request(handle, filename, apply_fixes):
     _server_request_service(handle, ServiceId.CLANG_TIDY, filename, apply_fixes)
 
+#
+# IWYU service API
+#
+def iwyu_start(handle):
+    _server_start_service(handle, ServiceId.IWYU)
+
+def iwyu_stop(handle, subscribe_for_callback):
+    _server_stop_service(handle, ServiceId.IWYU, subscribe_for_callback)
+
+def iwyu_request_run(handle, filename):
+    _server_request_service(handle, ServiceId.IWYU, IwyuRequestId.RUN, filename)
+
+def iwyu_request_run_and_apply_fixes(handle, filename):
+    _server_request_service(handle, ServiceId.IWYU, IwyuRequestId.RUN_AND_APPLY_FIXES, filename)
+
+#
+# Disassembly service API
+#
+def disassembly_start(handle):
+    _server_start_service(handle, ServiceId.DISASSEMBLY)
+
+def disassembly_stop(handle, subscribe_for_callback):
+    _server_stop_service(handle, ServiceId.DISASSEMBLY, subscribe_for_callback)
+
+def disassembly_request_run(handle, filename, line):
+    _server_request_service(handle, ServiceId.DISASSEMBLY, IwyuRequestId.RUN, filename, line)
 
 #
 # Helper functions.

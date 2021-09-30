@@ -20,6 +20,10 @@ class CxxdConfigParser(object):
         self.clang_tidy_binary_path = None
         self.clang_format_args = []
         self.clang_format_binary_path = None
+        self.iwyu_args = []
+        self.iwyu_binary_path = None
+        self.disassembly_args = []
+        self.disassembly_binary_path = None
         self.project_builder_args = []
         self.project_builder_targets = []
         self.project_root_directory = project_root_directory
@@ -38,12 +42,20 @@ class CxxdConfigParser(object):
                 self.clang_format_args = self._extract_clang_format_args(config)
                 self.clang_format_binary_path = self._extract_clang_format_binary_path(config)
                 self.clang_library_file = self._extract_clang_library_file(config)
+                self.iwyu_args = self._extract_iwyu_args(config)
+                self.iwyu_binary_path = self._extract_iwyu_binary_path(config)
+                self.disassembly_args = self._extract_disassembly_args(config)
+                self.disassembly_binary_path = self._extract_disassembly_binary_path(config)
                 self.project_builder_args = self._extract_project_builder_args(config)
                 self.project_builder_targets = self._extract_project_builder_targets(config)
         if not self.clang_tidy_binary_path:
             self.clang_tidy_binary_path = self._find_system_wide_binary('clang-tidy')
         if not self.clang_format_binary_path:
             self.clang_format_binary_path = self._find_system_wide_binary('clang-format')
+        if not self.iwyu_binary_path:
+            self.iwyu_binary_path = self._find_system_wide_binary('iwyu_tool')
+        if not self.disassembly_binary_path:
+            self.disassembly_binary_path = self._find_system_wide_binary('objdump')
         logging.info('Configuration: Type {0}'.format(self.configuration_type))
         logging.info('Configuration: Selected {0}'.format(self.configuration_selected))
         logging.info('Indexer: Blacklisted directories {0}'.format(self.indexer_blacklisted_directories))
@@ -52,6 +64,10 @@ class CxxdConfigParser(object):
         logging.info('Clang-tidy binary path {0}'.format(self.clang_tidy_binary_path))
         logging.info('Clang-format args {0}'.format(self.clang_format_args))
         logging.info('Clang-format binary path {0}'.format(self.clang_format_binary_path))
+        logging.info('IWYU args {0}'.format(self.iwyu_args))
+        logging.info('IWYU binary path {0}'.format(self.iwyu_binary_path))
+        logging.info('Disassembly args {0}'.format(self.disassembly_args))
+        logging.info('Disassembly binary path {0}'.format(self.disassembly_binary_path))
         logging.info('Clang library-file {0}'.format(self.clang_library_file))
         logging.info('Project-builder args {0}'.format(self.project_builder_args))
         logging.info('Project-builder targets {0}'.format(self.project_builder_targets))
@@ -82,6 +98,18 @@ class CxxdConfigParser(object):
 
     def get_clang_library_file(self):
         return self.clang_library_file
+
+    def get_iwyu_args(self):
+        return self.iwyu_args
+
+    def get_iwyu_binary_path(self):
+        return self.iwyu_binary_path
+
+    def get_disassembly_args(self):
+        return self.disassembly_args
+
+    def get_disassembly_binary_path(self):
+        return self.disassembly_binary_path
 
     def get_project_builder_args(self):
         return self.project_builder_args
@@ -228,6 +256,34 @@ class CxxdConfigParser(object):
         if 'clang-format' in config:
             if 'binary' in config['clang-format']:
                 return config['clang-format']['binary']
+        return None
+
+    def _extract_iwyu_args(self, config):
+        args = []
+        if 'iwyu' in config:
+            if 'args' in config['iwyu']:
+                for arg, value in config['iwyu']['args'].items():
+                    args.append((arg, value),)
+        return args
+
+    def _extract_iwyu_binary_path(self, config):
+        if 'iwyu' in config:
+            if 'binary' in config['iwyu']:
+                return config['iwyu']['binary']
+        return None
+
+    def _extract_disassembly_args(self, config):
+        args = []
+        if 'disassembly' in config:
+            if 'args' in config['disassembly']:
+                for arg, value in config['disassembly']['args'].items():
+                    args.append((arg, value),)
+        return args
+
+    def _extract_disassembly_binary_path(self, config):
+        if 'disassembly' in config:
+            if 'binary' in config['disassembly']:
+                return config['disassembly']['binary']
         return None
 
     def _extract_project_builder_args(self, config):
