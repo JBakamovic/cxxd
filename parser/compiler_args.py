@@ -23,6 +23,19 @@ class CompilerArgs():
             def eat_compiler_invocation(json_comp_db_command):
                 return json_comp_db_command[1:len(json_comp_db_command)]   # i.e. /usr/bin/c++
 
+            def eat_getCompileCommands_header_file_part(json_comp_db_command):
+                # From version XYZ (?) clang_getCompileCommands started to output "faked" compilation database commands
+                # for header files. This is different than what has been before when it would simply return null
+                # for all files which are not translation units (headers are not) and hence not part of the
+                # compile_commands.json
+                #
+                # "Faked" output contains '-- /path/to/header/file' part and this interferes with
+                # clang_parseTranslationUnit which will fail with 'invalid arguments' error.
+                #
+                # Getting rid of that part seems to fix the issue and headers again can be successfully parsed.
+                # It's always the last two args in the sequence.
+                return json_comp_db_command[0:len(json_comp_db_command)-2]
+
             def cache_compiler_args(args_list):
                 # JSON compilation database ('compile_commands.json'):
                 #   1. Will include information about translation units only (.cxx)
@@ -38,22 +51,34 @@ class CompilerArgs():
                 # of header-only libraries.
                 self.cached_compiler_args = list(args_list) # most simplest is to create a copy of current ones
 
-            def extract_compiler_args(compile_cmd):
+            def is_header_file(filename):
+                s = filename.split('.')
+                if len(s) == 1:
+                    return True # some headers don't have an extension, e.g. vector
+                if s[1].startswith('h'):
+                    return True # extension is some variation of .h, .hpp, .hxx, etc.
+                return False
+
+            def extract_compiler_args(compile_cmd, is_header):
                 args = []
                 if compile_cmd:
                     for arg in compile_cmd[0].arguments:
                         args.append(arg)
-                    args = self.default_compiler_args + eat_compiler_invocation(eat_minus_o_compiler_option(eat_minus_c_compiler_option(args)))
+                    # Since some version of libclang, handling for header files has been changed and now we have to special-case it here
+                    if is_header:
+                        args = self.default_compiler_args + eat_compiler_invocation(eat_getCompileCommands_header_file_part(args))
+                    else:
+                        args = self.default_compiler_args + eat_compiler_invocation(eat_minus_o_compiler_option(eat_minus_c_compiler_option(args)))
                 return list(args)
 
-            compiler_args = extract_compiler_args(self.database.getCompileCommands(filename))
+            compiler_args = extract_compiler_args(self.database.getCompileCommands(filename), is_header_file(filename))
             if compiler_args:
                 cache_compiler_args(compiler_args)
             else:                                                   # 'filename' entry doesn't exist in JSON database (i.e. header file)
                 if self.cached_compiler_args:                       # use cached compiler args if available
                     compiler_args = list(self.cached_compiler_args)
                 else:                                               # otherwise use the compiler arguments from the very first entry in the JSON database (assuming that similar flags if not the same will be valid)
-                    compiler_args = extract_compiler_args(self.database.getAllCompileCommands())
+                    compiler_args = extract_compiler_args(self.database.getAllCompileCommands(), is_header_file(filename))
                     if compiler_args:
                         cache_compiler_args(compiler_args)
                     else:                                           # if that also failed (i.e. no entries in the JSON db; header-only libs), use default compiler args
