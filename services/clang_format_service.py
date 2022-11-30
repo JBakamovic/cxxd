@@ -27,6 +27,7 @@ class ClangFormat(cxxd.service.Service):
 
     def startup_callback(self, args):
         if self.clang_format_binary:
+            logging.info('clang-format service started.')
             logging.info('clang-format version: \'{0}\''.format(subprocess.check_output([self.clang_format_binary, '-version'])))
             return True, []
 
@@ -34,6 +35,7 @@ class ClangFormat(cxxd.service.Service):
         return False, []
 
     def shutdown_callback(self, args):
+        logging.info('clang-format service stopped.')
         return True, []
 
     def __call__(self, args):

@@ -48,9 +48,11 @@ class ClangTidy(cxxd.service.Service):
         return clang_tidy_args
 
     def startup_callback(self, args):
+        logging.info('clang-tidy service started.')
         return True, []
 
     def shutdown_callback(self, args):
+        logging.info('clang-tidy service stopped.')
         return True, []
 
     def __call__(self, args):

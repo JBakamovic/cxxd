@@ -57,9 +57,11 @@ class ProjectBuilder(cxxd.service.Service):
         return self._run_the_build(build_cmd)
 
     def startup_callback(self, args):
+        logging.info('Project-builder service started.')
         return True, [self.build_cmd_output_file.name]
 
     def shutdown_callback(self, args):
+        logging.info('Project-builder service stopped.')
         return True, []
 
     def __call__(self, args):

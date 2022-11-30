@@ -44,9 +44,11 @@ class SourceCodeModel(cxxd.service.Service):
         return False, None
 
     def startup_callback(self, args):
+        logging.info('source-code-model service started.')
         return True, []
 
     def shutdown_callback(self, args):
+        logging.info('source-code-model service stopped.')
         return True, []
 
     def __call__(self, args):
