@@ -15,13 +15,28 @@ class CompilerArgs():
 
         def get(self, filename):
             def eat_minus_c_compiler_option(json_comp_db_command):
-                return json_comp_db_command[0:len(json_comp_db_command)-2] # -c <source_code_filename>
+                # Get rid of the '-c <source_code_filename>' part
+                try:
+                    c_idx = json_comp_db_command.index('-c')
+                    json_comp_db_command.pop(c_idx)
+                    json_comp_db_command.pop(c_idx)
+                except ValueError:
+                    pass
+                return json_comp_db_command
 
             def eat_minus_o_compiler_option(json_comp_db_command):
-                return json_comp_db_command[0:len(json_comp_db_command)-2] # -o <object_file>
+                # Get rid of the '-o <object_file>' part
+                try:
+                    o_idx = json_comp_db_command.index('-o')
+                    json_comp_db_command.pop(o_idx)
+                    json_comp_db_command.pop(o_idx)
+                except ValueError:
+                    pass
+                return json_comp_db_command
 
             def eat_compiler_invocation(json_comp_db_command):
-                return json_comp_db_command[1:len(json_comp_db_command)]   # i.e. /usr/bin/c++
+                # Get rid of the '<compiler_invocation>' part. It's always the first one.
+                return json_comp_db_command[1:len(json_comp_db_command)]
 
             def eat_getCompileCommands_header_file_part(json_comp_db_command):
                 # From version XYZ (?) clang_getCompileCommands started to output "faked" compilation database commands
