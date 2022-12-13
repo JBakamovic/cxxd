@@ -151,7 +151,18 @@ class CompilerArgs():
             self.database = self.FallbackCompilationDatabase(self.default_compiler_args)
             logging.error("Unsupported way of providing compiler args: '{0}'. Parsing capabilities will be very limited or NOT functional at all!".format(compiler_args_filename))
 
-    def get(self, source_code_filename, source_code_is_modified):
+    def get(self, source_code_filename):
+        return list(self.database.get(source_code_filename)) # make a copy; we don't want to keep modifying the original compiler args
+
+    def transform_to_edited_file_form(self, source_code_filename, in_compiler_args):
+
+        # For edited files, we need to append additional include path to the compiler args which points to the parent directory of current buffer.
+        #   * This needs to be done because we will be doing analysis on temporary file which is located outside the project
+        #     directory. By doing this, we might invalidate header includes for that particular file and therefore trigger
+        #     unnecessary Clang parsing errors.
+        #   * An alternative would be to generate tmp files in original location but that would pollute project directory and
+        #     potentially would not play well with other tools (indexer, version control, etc.).
+
         def find_first_occurence_of_minus_i_compiler_option(compiler_args):
             for index, arg in enumerate(compiler_args):
                 if str(arg).startswith('-I'):
@@ -164,21 +175,13 @@ class CompilerArgs():
                     return len(compiler_args) - index
             return None
 
-        compiler_args = list(self.database.get(source_code_filename)) # make a copy; we don't want to keep modifying the original compiler args
-        if source_code_is_modified:
-            # Append additional include path to the compiler args which points to the parent directory of current buffer.
-            #   * This needs to be done because we will be doing analysis on temporary file which is located outside the project
-            #     directory. By doing this, we might invalidate header includes for that particular file and therefore trigger
-            #     unnecessary Clang parsing errors.
-            #   * An alternative would be to generate tmp files in original location but that would pollute project directory and
-            #     potentially would not play well with other tools (indexer, version control, etc.).
-            index = 0
-            last_include_index = find_last_occurence_of_minus_i_compiler_option(compiler_args)
-            if last_include_index is not None:
-                index = last_include_index
-            compiler_args.insert(index, '-I' + os.path.dirname(source_code_filename))
-        logging.info('Compiler args = ' + str(compiler_args))
-        return compiler_args
+        index = 0
+        out_compiler_args = list(in_compiler_args) # make a copy; we don't want to keep modifying the original compiler args
+        last_include_index = find_last_occurence_of_minus_i_compiler_option(in_compiler_args)
+        if last_include_index is not None:
+            index = last_include_index
+        out_compiler_args.insert(index, '-I' + os.path.dirname(source_code_filename))
+        return out_compiler_args
 
     def is_json_database(self, compiler_args_filename):
         return os.path.basename(compiler_args_filename) == 'compile_commands.json'

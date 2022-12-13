@@ -66,37 +66,115 @@ class ClangParser():
         self.tunit_cache   = tunit_cache
         logging.info("libclang version: '{0}'".format(ClangParser.__get_clang_version()))
 
+    def default_parsing_flags(self):
+        # TODO Add support for PARSE_INCLUDE_BRIEF_COMMENTS_IN_CODE_COMPLETION
+        # TODO CXTranslationUnit_KeepGoing?
+        return \
+            clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD | \
+            clang.cindex.TranslationUnit.PARSE_CACHE_COMPLETION_RESULTS | \
+            clang.cindex.TranslationUnit.PARSE_PRECOMPILED_PREAMBLE | \
+            clang.cindex.TranslationUnit.PARSE_INCOMPLETE
+
     def get_compiler_args_db(self):
         return self.compiler_args
 
-    def parse(self, contents_filename, original_filename):
-        def do_parse(contents_filename, original_filename):
-            try:
-                return self.index.parse(
-                    path = contents_filename,
-                    args = self.compiler_args.get(original_filename, contents_filename != original_filename),
-                    options = clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD # TODO CXTranslationUnit_KeepGoing?
-                )
-            except:
-                logging.error(sys.exc_info())
-
-        logging.info('Filename = {0}'.format(original_filename))
-        logging.info('Contents Filename = {0}'.format(contents_filename))
-
-        # Check if we have this tunit already in the cache ...
-        tunit, m_timestamp = self.tunit_cache.fetch(contents_filename)
-
+    def code_complete_cache_warmup(self, filename, line, column, complete_macros=False, complete_lang_constructs=False, opts=None):
+        # If TUnit is already cached, then we've already done the cache-warmup ...
+        completion_results = None
+        tunit, tunit_build_flags, tunit_timestamp = self.tunit_cache.fetch(filename)
         if tunit is None:
-            tunit = do_parse(contents_filename, original_filename)      # If we don't, we simply have to parse it ...
-        else:
-            logging.info('TUnit found in cache.')
-            if m_timestamp != os.path.getmtime(contents_filename):      # We still have to make sure that cached tunit is not out-of-date.
-                tunit = do_parse(contents_filename, original_filename)
-                logging.info('Cached TUnit contents do not match the current contents (i.e. file is edited furthermore)')
+            # But if not, we have to parse it first ...
+            build_flags = self.compiler_args.get(filename)
+            tunit = self.__do_parse(
+                filename,
+                filename,
+                build_flags,
+                opts
+            )
+            if tunit:
+                # Now, trigger the code-complete on given TUnit ...
+                self.tunit_cache.insert(filename, tunit, build_flags, os.path.getmtime(filename))
+                with open(filename) as f:
+                    completion_results = tunit.codeComplete(
+                        tunit.spelling,
+                        line,
+                        column + 1,
+                        include_macros=complete_macros,
+                        include_code_patterns=complete_lang_constructs,
+                        unsaved_files=[(filename, f.read()),]
+                    )
+            else:
+                logging.error('Unable to parse TUnit!')
+        return completion_results
 
-        # Insert the tunit into the cache ...
-        if tunit:
-            self.tunit_cache.insert(contents_filename, tunit)
+    def code_complete(self, contents_filename, original_filename, line, column, complete_macros=False, complete_lang_constructs=False, opts=None):
+        # Check if TUnit is already cached. If not, we have to parse it first ...
+        tunit, tunit_build_flags, tunit_timestamp = self.tunit_cache.fetch(original_filename)
+        if tunit is None:
+            build_flags = self.compiler_args.get(original_filename)
+            tunit = self.__do_parse(
+                contents_filename,
+                original_filename,
+                build_flags,
+                opts
+            )
+            if tunit:
+                self.tunit_cache.insert(original_filename, tunit, build_flags, os.path.getmtime(original_filename))
+            else:
+                logging.error('Unable to parse TUnit!')
+
+        # Now, trigger the code-complete on given TUnit ...
+        with open(contents_filename) as f:
+            return tunit.codeComplete(
+                tunit.spelling,
+                line,
+                column + 1,
+                include_macros=complete_macros,
+                include_code_patterns=complete_lang_constructs,
+                unsaved_files=[(original_filename, f.read()),]
+            )
+
+    def sort_code_completion_results(self, code_completion_candidates):
+        _libclang = clang.cindex.conf.get_cindex_library()
+        _libclang.clang_sortCodeCompletionResults.argtypes = [clang.cindex.CCRStructure]
+        _libclang.clang_sortCodeCompletionResults.restype  = None
+        _libclang.clang_sortCodeCompletionResults(code_completion_candidates.results, len(code_completion_candidates.results))
+
+    def parse(self, contents_filename, original_filename, opts=None):
+        # Check if we have this tunit already in the cache ...
+        tunit, tunit_build_flags, tunit_timestamp = self.tunit_cache.fetch(original_filename)
+        if tunit is None:
+            logging.info('TUnit NOT found in cache!')
+            build_flags = self.compiler_args.get(original_filename)
+            tunit = self.__do_parse(
+                contents_filename,
+                original_filename,
+                build_flags,
+                opts
+            )
+            if tunit:
+                self.tunit_cache.insert(original_filename, tunit, build_flags, os.path.getmtime(original_filename))
+            else:
+                logging.error('Unable to parse TUnit!')
+        else:
+            logging.info('TUnit found in cache!')
+            curr_timestamp = os.path.getmtime(contents_filename)
+            if tunit_timestamp != curr_timestamp:      # We still have to make sure that cached tunit is not out-of-date.
+                logging.info('But it is too old ... reparsing')
+                tunit = self.__do_parse(
+                    contents_filename,
+                    original_filename,
+                    self.compiler_args.transform_to_edited_file_form(original_filename, tunit_build_flags),
+                    opts
+                )
+                if tunit:
+                    self.tunit_cache.update(original_filename, tunit, tunit_build_flags, curr_timestamp)
+                    # TODO Reparsing seems to be more unstable (e.g. crashes) and sometimes even slower (?)
+                    # with open(contents_filename) as f:
+                    #    tunit.reparse([(original_filename, f.read()),])
+                    #    self.tunit_cache.update(original_filename, tunit, curr_timestamp)
+                else:
+                    logging.error('Unable to parse TUnit!')
 
         return tunit
 
@@ -282,6 +360,16 @@ class ClangParser():
             logging.debug('----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------')
             self.traverse(tunit.cursor, None, visitor)
             logging.debug(build_flags)
+
+    def __do_parse(self, contents_filename, original_filename, build_flags, opts=None):
+        try:
+            return self.index.parse(
+                path = contents_filename,
+                args = build_flags,
+                options = self.default_parsing_flags() if opts is None else opts
+            )
+        except:
+            logging.error(sys.exc_info())
 
     @staticmethod
     def __extract_dependent_type_kind(cursor):

@@ -212,6 +212,35 @@ class SourceCodeModelCallbackResult():
     def __getitem__(self, key):
         return self.type.get(key, None)
 
+class CodeCompletionCallbackResult():
+    def __init__(self):
+        self.wait_on_completion = multiprocessing.Semaphore(0)
+        self.status = multiprocessing.Value(ctypes.c_bool, False)
+        self.num_of_code_complete_candidates = multiprocessing.Value(ctypes.c_int, 0)
+
+    def wait_until_available(self):
+        self.wait_on_completion.acquire()
+
+    def set(self, success, code_completion_action_id, args):
+        from cxxd.services.code_completion.code_completion import CodeCompletionRequestId
+        self.status.value = success
+        if code_completion_action_id == CodeCompletionRequestId.CODE_COMPLETE:
+            self.num_of_code_complete_candidates.value = len(args)
+        else:
+            logging.error('Invalid code-completion action id!')
+
+    def reset(self):
+        self.status.value = False
+        self.num_of_code_complete_candidates.value = 0
+
+    @property
+    def status(self):
+        return self.status.value
+
+    @property
+    def num_of_code_complete_candidates(self):
+        return self.num_of_code_complete_candidates.value
+
 class ClangFormatCallbackResult():
     def __init__(self):
         self.wait_on_completion = multiprocessing.Semaphore(0)

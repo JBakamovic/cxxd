@@ -1,6 +1,7 @@
 import cProfile
 import os
 import pstats
+import shutil
 import sys
 import unittest
 
@@ -19,7 +20,7 @@ ext_dep = {
 
 # We have to provide a factory method to instantiate the server the way we want ...
 def get_server_instance(handle, proj_root_directory, target_configuration, args):
-    source_code_model_cb_result, clang_format_cb_result, clang_tidy_cb_result, project_builder_cb_result  = args
+    source_code_model_cb_result, clang_format_cb_result, clang_tidy_cb_result, project_builder_cb_result, code_completion_cb_result  = args
     return cxxd.server.Server(
         handle,
         proj_root_directory,
@@ -27,7 +28,8 @@ def get_server_instance(handle, proj_root_directory, target_configuration, args)
         cxxd_plugins.SourceCodeModelServicePluginMock(source_code_model_cb_result),
         cxxd_plugins.ProjectBuilderServicePluginMock(project_builder_cb_result),
         cxxd_plugins.ClangFormatServicePluginMock(clang_format_cb_result),
-        cxxd_plugins.ClangTidyServicePluginMock(clang_tidy_cb_result)
+        cxxd_plugins.ClangTidyServicePluginMock(clang_tidy_cb_result),
+        cxxd_plugins.CodeCompletionServicePluginMock(code_completion_cb_result)
     )
 
 # compile_commands.json is what we have to have in order to run the integration tests
@@ -56,6 +58,9 @@ class CxxdIntegrationTest(unittest.TestCase):
     def setUpClass(cls):
         # Setup some paths
         cls.fut = ext_dep['chaiscript']['path'] + os.sep + 'include' + os.sep + 'chaiscript' + os.sep + 'chaiscript_stdlib.hpp'
+        cls.fut_cpp = ext_dep['chaiscript']['path'] + os.sep + 'src' + os.sep + 'main.cpp'
+        cls.fut_cpp_edited = cls.fut_cpp + '.tmp' # Edited files are serialized into temporary files so we create one here ...
+        shutil.copyfile(cls.fut_cpp, cls.fut_cpp_edited)
         cls.proj_root_dir = ext_dep['chaiscript']['path']
         cls.target_configuration = None # We force Cxxd go into auto-discovery mode if we don't provide any configuration
         cls.clang_format_config = cls.proj_root_dir + os.sep + '.clang-format'
@@ -77,6 +82,7 @@ class CxxdIntegrationTest(unittest.TestCase):
         cls.clang_format_cb_result = cxxd_callbacks.ClangFormatCallbackResult()
         cls.clang_tidy_cb_result = cxxd_callbacks.ClangTidyCallbackResult()
         cls.project_builder_cb_result = cxxd_callbacks.ProjectBuilderCallbackResult()
+        cls.code_completion_cb_result = cxxd_callbacks.CodeCompletionCallbackResult()
 
         # Start the cxxd server ...
         cls.handle = cxxd.api.server_start(
@@ -86,6 +92,7 @@ class CxxdIntegrationTest(unittest.TestCase):
                 cls.clang_format_cb_result,
                 cls.clang_tidy_cb_result,
                 cls.project_builder_cb_result,
+                cls.code_completion_cb_result,
             ),
             cls.proj_root_dir,
             cls.target_configuration,
@@ -97,6 +104,7 @@ class CxxdIntegrationTest(unittest.TestCase):
         cxxd.api.clang_format_start(cls.handle)
         cxxd.api.clang_tidy_start(cls.handle)
         cxxd.api.project_builder_start(cls.handle)
+        cxxd.api.code_completion_start(handle)
 
         # Run the indexer ... Wait until it completes.
         cxxd.api.source_code_model_indexer_run_on_directory_request(cls.handle)
@@ -111,6 +119,7 @@ class CxxdIntegrationTest(unittest.TestCase):
             assert cls.source_code_model_cb_result['indexer'].status == True # can't use unittest asserts here ...
         cxxd.api.server_stop(cls.handle)
         os.remove(cls.log_file)
+        os.remove(cls.fut_cpp_edited)
         cls.profiling_stats.sort(key=lambda stat: stat.total_tt) # Sort profiling stats by total time
         for stat in cls.profiling_stats: # Dump the profiling stats we collected.
             stat.sort_stats('cumtime').print_stats()
@@ -195,6 +204,23 @@ class CxxdIntegrationTest(unittest.TestCase):
         cxxd.api.source_code_model_diagnostics_request(self.handle, self.fut, self.fut)
         self.source_code_model_cb_result.wait_until_available()
         self.assertTrue(self.source_code_model_cb_result['diagnostics'].status)
+
+    def test_code_completion_code_complete_request_on_a_fresh_non_cached_file(self):
+        # This, not so relevant (!), use case involves parsing the file first and THEN triggering the code-complete so it is basically
+        # profiling two different things. Generally, code-complete will NOT be operating on inexisting TUnits because there are other
+        # services which will parse the file we opened way before the code-complete service even kicks in.
+        cxxd.api.code_complete_request(self.handle, self.fut_cpp, self.fut_cpp, 64, 4, 1235, 0)
+        self.source_code_model_cb_result.wait_until_available()
+        self.assertTrue(self.source_code_model_cb_result['code_completion'].status)
+        self.assertNotEqual(self.source_code_model_cb_result['code_completion'].num_of_code_complete_candidates, 0)
+
+    def test_code_completion_code_complete_request_on_cached_file(self):
+        # This use case relies on a fact that TUnit under test will exist in TUnit cache (which it will because of the previous unit test).
+        # We are trying to test how much does it take for code-complete to complete on existing but NOT up-to-date TUnits.
+        cxxd.api.code_complete_request(self.handle, self.fut_cpp, self.fut_cpp_edited, 44, 7, 1235, 0)
+        self.source_code_model_cb_result.wait_until_available()
+        self.assertTrue(self.source_code_model_cb_result['code_completion'].status)
+        self.assertNotEqual(self.source_code_model_cb_result['code_completion'].num_of_code_complete_candidates, 0)
 
     def test_clang_tidy_request(self):
         fut = ext_dep['chaiscript']['path'] + os.sep + 'src' + os.sep + 'chaiscript_stdlib_module.cpp'

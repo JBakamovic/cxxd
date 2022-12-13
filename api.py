@@ -2,6 +2,7 @@ from server import ServiceId
 from server import ServerRequestId
 from services.source_code_model_service import SourceCodeModelSubServiceId
 from services.source_code_model.indexer.clang_indexer import SourceCodeModelIndexerRequestId
+from services.code_completion.code_completion import CodeCompletionRequestId
 from services.project_builder_service import ProjectBuilderRequestId
 
 #
@@ -123,6 +124,21 @@ def source_code_model_indexer_find_all_references_request(handle, filename, line
 
 def source_code_model_indexer_fetch_all_diagnostics_request(handle, sorting_strategy):
     _indexer_request(handle, SourceCodeModelIndexerRequestId.FETCH_ALL_DIAGNOSTICS, sorting_strategy)
+
+#
+# Code-completion service API
+#
+def code_completion_start(handle):
+    _server_start_service(handle, ServiceId.CODE_COMPLETION)
+
+def code_completion_stop(handle, subscribe_for_callback):
+    _server_stop_service(handle, ServiceId.CODE_COMPLETION, subscribe_for_callback)
+
+def code_complete_request(handle, filename, contents, line, col, offset, sorting_strategy):
+    _server_request_service(handle, ServiceId.CODE_COMPLETION, CodeCompletionRequestId.CODE_COMPLETE, filename, contents, line, col, offset, sorting_strategy)
+
+def code_complete_cache_warmup_request(handle, filename, line, column):
+    _server_request_service(handle, ServiceId.CODE_COMPLETION, CodeCompletionRequestId.CACHE_WARMUP, filename, line, column)
 
 #
 # Project builder service API

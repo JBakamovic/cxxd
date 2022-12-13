@@ -2,10 +2,10 @@ class SourceCodeModelServicePluginMock():
     def __init__(self, callback_result):
         self.callback_result = callback_result
 
-    def startup_callback(self, success, payload):
+    def startup_callback(self, success, payload, startup_payload):
         pass
 
-    def shutdown_callback(self, success, payload):
+    def shutdown_callback(self, success, payload, shutdown_payload):
         pass
 
     def __call__(self, success, payload, args):
@@ -15,10 +15,10 @@ class ClangFormatServicePluginMock():
     def __init__(self, callback_result):
         self.callback_result = callback_result
 
-    def startup_callback(self, success, payload):
+    def startup_callback(self, success, payload, startup_payload):
         pass
 
-    def shutdown_callback(self, success, payload):
+    def shutdown_callback(self, success, payload, shutdown_payload):
         pass
 
     def __call__(self, success, payload, args):
@@ -28,10 +28,10 @@ class ClangTidyServicePluginMock():
     def __init__(self, callback_result):
         self.callback_result = callback_result
 
-    def startup_callback(self, success, payload):
+    def startup_callback(self, success, payload, startup_payload):
         pass
 
-    def shutdown_callback(self, success, payload):
+    def shutdown_callback(self, success, payload, shutdown_payload):
         pass
 
     def __call__(self, success, payload, args):
@@ -41,11 +41,25 @@ class ProjectBuilderServicePluginMock():
     def __init__(self, callback_result):
         self.callback_result = callback_result
 
-    def startup_callback(self, success, payload):
+    def startup_callback(self, success, payload, startup_payload):
         pass
 
-    def shutdown_callback(self, success, payload):
+    def shutdown_callback(self, success, payload, shutdown_payload):
         pass
 
     def __call__(self, success, payload, args):
         self.callback_result.set(success, args)
+
+class CodeCompletionServicePluginMock():
+    def __init__(self, callback_result):
+        self.callback_result = callback_result
+
+    def startup_callback(self, success, payload, startup_payload):
+        pass
+
+    def shutdown_callback(self, success, payload, shutdown_payload):
+        pass
+
+    def __call__(self, success, payload, args):
+        self.callback_result.set(success, args)
+

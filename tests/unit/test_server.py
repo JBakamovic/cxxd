@@ -30,6 +30,7 @@ class ServerTest(unittest.TestCase):
             cxxd_mocks.ServicePluginMock(),
             cxxd_mocks.ServicePluginMock(),
             cxxd_mocks.ServicePluginMock(),
+            cxxd_mocks.ServicePluginMock(),
             cxxd_mocks.ServicePluginMock()
         )
 

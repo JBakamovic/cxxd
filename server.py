@@ -5,6 +5,7 @@ from parser.cxxd_config_parser import CxxdConfigParser
 from services.clang_format_service import ClangFormat
 from services.clang_tidy_service import ClangTidy
 from services.project_builder_service import ProjectBuilder
+from services.code_completion_service import CodeCompletion
 from services.source_code_model_service import SourceCodeModel
 
 class ServiceId():
@@ -12,6 +13,7 @@ class ServiceId():
     PROJECT_BUILDER       = 0x1
     CLANG_FORMAT          = 0x2
     CLANG_TIDY            = 0x3
+    CODE_COMPLETION       = 0x4
 
 class ServerRequestId():
     START_ALL_SERVICES    = 0xF0
@@ -64,7 +66,7 @@ class Server():
             else:
                 logging.warning("Service process must be started before issuing any kind of requests!")
 
-    def __init__(self, handle, project_root_directory, target, source_code_model_plugin, project_builder_plugin, clang_format_plugin, clang_tidy_plugin):
+    def __init__(self, handle, project_root_directory, target, source_code_model_plugin, project_builder_plugin, clang_format_plugin, clang_tidy_plugin, code_completion_plugin):
         self.handle = handle
         self.cxxd_config_filename = '.cxxd_config.json'
         self.cxxd_config_parser = CxxdConfigParser(os.path.join(project_root_directory, self.cxxd_config_filename), project_root_directory)
@@ -86,6 +88,7 @@ class Server():
                 ServiceId.PROJECT_BUILDER   : self.ServiceHandler(ProjectBuilder(project_root_directory, self.cxxd_config_parser, target, project_builder_plugin)),
                 ServiceId.CLANG_FORMAT      : self.ServiceHandler(ClangFormat(project_root_directory, self.cxxd_config_parser, clang_format_plugin)),
                 ServiceId.CLANG_TIDY        : self.ServiceHandler(ClangTidy(project_root_directory, self.cxxd_config_parser, target, clang_tidy_plugin)),
+                ServiceId.CODE_COMPLETION   : self.ServiceHandler(CodeCompletion(project_root_directory, self.cxxd_config_parser, target, code_completion_plugin)),
             }
             logging.info("Registered services: {0}".format(self.service))
             logging.info("Actions: {0}".format(self.action))
