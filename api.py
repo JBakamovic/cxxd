@@ -102,8 +102,8 @@ def source_code_model_go_to_definition_request(handle, filename, contents, line,
 def source_code_model_go_to_include_request(handle, filename, contents, line):
     _source_code_model_request(handle, SourceCodeModelSubServiceId.GO_TO_INCLUDE, filename, contents, line)
 
-def source_code_model_indexer_run_on_single_file_request(handle, filename, contents):
-    _indexer_request(handle, SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, filename, contents)
+def source_code_model_indexer_run_on_single_file_request(handle, filename):
+    _indexer_request(handle, SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, filename)
 
 def source_code_model_indexer_run_on_directory_request(handle):
     _indexer_request(handle, SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY)
