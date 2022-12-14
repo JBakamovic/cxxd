@@ -38,7 +38,7 @@ class CompilerArgs():
                 # Get rid of the '<compiler_invocation>' part. It's always the first one.
                 return json_comp_db_command[1:len(json_comp_db_command)]
 
-            def eat_getCompileCommands_header_file_part(json_comp_db_command):
+            def eat_minus_minus_path_to_file(json_comp_db_command):
                 # From version XYZ (?) clang_getCompileCommands started to output "faked" compilation database commands
                 # for header files. This is different than what has been before when it would simply return null
                 # for all files which are not translation units (headers are not) and hence not part of the
@@ -47,9 +47,21 @@ class CompilerArgs():
                 # "Faked" output contains '-- /path/to/header/file' part and this interferes with
                 # clang_parseTranslationUnit which will fail with 'invalid arguments' error.
                 #
-                # Getting rid of that part seems to fix the issue and headers again can be successfully parsed.
-                # It's always the last two args in the sequence.
-                return json_comp_db_command[0:len(json_comp_db_command)-2]
+                # Also, the same "faked" output clang_getCompileCommands will be returned for non-header files, so
+                # translation units, that are not part of the compilation database. This is a very valid use-case
+                # possible to run into if a new .cxx file is created but is not yet part of the compilation
+                # database. This happens either when a CMakeLists.txt entry has not been added yet and/or CMake
+                # build config has not been yet regenerated with a new file.
+                #
+                # This function fixes this interferance with improperly parsing these units by removing
+                # the '-- <path>' part.
+                try:
+                    o_idx = json_comp_db_command.index('--')
+                    json_comp_db_command.pop(o_idx)
+                    json_comp_db_command.pop(o_idx)
+                except ValueError:
+                    pass
+                return json_comp_db_command
 
             def cache_compiler_args(args_list):
                 # JSON compilation database ('compile_commands.json'):
@@ -79,11 +91,14 @@ class CompilerArgs():
                 if compile_cmd:
                     for arg in compile_cmd[0].arguments:
                         args.append(arg)
-                    # Since some version of libclang, handling for header files has been changed and now we have to special-case it here
+                    # Since some version of libclang, handling for files not part of the compilation database
+                    # (e.g. headers and TUs not yet part of the build system) has been changed and now we have
+                    # to special-case it here with eat_minus_minus_path_to_file. Furthermore, headers need more
+                    # special care because compiler flag options are not the same as for the TUs.
                     if is_header:
-                        args = self.default_compiler_args + eat_compiler_invocation(eat_getCompileCommands_header_file_part(args))
+                        args = self.default_compiler_args + eat_compiler_invocation(eat_minus_minus_path_to_file(args))
                     else:
-                        args = self.default_compiler_args + eat_compiler_invocation(eat_minus_o_compiler_option(eat_minus_c_compiler_option(args)))
+                        args = self.default_compiler_args + eat_compiler_invocation(eat_minus_minus_path_to_file(eat_minus_o_compiler_option(eat_minus_c_compiler_option(args))))
                 return list(args)
 
             compiler_args = extract_compiler_args(self.database.getCompileCommands(filename), is_header_file(filename))
@@ -98,6 +113,7 @@ class CompilerArgs():
                         cache_compiler_args(compiler_args)
                     else:                                           # if that also failed (i.e. no entries in the JSON db; header-only libs), use default compiler args
                         compiler_args = list(self.default_compiler_args)
+            logging.debug(compiler_args)
             return compiler_args
 
     class CompileFlagsCompilationDatabase():
