@@ -1,44 +1,39 @@
 # Contents
 * [About](#about)
-  * [Features](#features)
+  * [Feature overview](#feature-overview)
   * [Supported platforms](#supported-platforms)
   * [Dependencies](#dependencies)
-* [API](#api)
-  * [Design](#design)
-    * [Services](#services)
-    * [Server](#server)
-    * [Async](#async)
-    * [Plugin](#plugin)
-  * [Example usage](#example-usage)
-    * [cxxd integration tests](#cxxd-integration-tests)
-    * [Frontend implementation for Vim](#frontend-implementation-for-vim)
-  * [Public API](#public-api)
-* [Screenshots](#screenshots)
+* [Configuration](#configuration)
+  * [Compilation database](#compilation-database)
+    * [compile_commands.json](#compile-commands-json)
+    * [compile_flags.txt](#compile-flags-txt)
+* [Example of configuration](#example-of-configuration)
 * [FAQ](#faq)
+* [Screenshots](#screenshots)
 
 # About
 
-`cxxd` is a C/C++ language server which offers rich support for features that aid the process of source code navigation, editing,
-automatic formatting, static analysis etc. One can utilize it, for example, to bring IDE-like features to an editor of your choice.
+`cxxd` is a C/C++ language server which offers rich support for features that aid the process of source code navigation, editing, source code formatting, static analysis etc. One can utilize it, for example, to bring IDE-like features to an editor of your choice.
 
-## Features
+## Feature overview
 
 Feature | Status | [cxxd-vim frontend](https://github.com/JBakamovic/cxxd-vim)
 ------------ | :-------------: | :-------------:
-Indexer | :heavy_check_mark: | :heavy_check_mark: 
+Indexer | :heavy_check_mark: | :heavy_check_mark:
+Indexer-diagnostics | :heavy_check_mark: | :heavy_check_mark:
+Code-completion | :heavy_check_mark: | :heavy_check_mark:
+Semantic-syntax-highlighting | :heavy_check_mark: | :heavy_check_mark:
 Find-all-references | :heavy_check_mark: | :heavy_check_mark:
 Go-to-definition | :heavy_check_mark: | :heavy_check_mark:
 Go-to-include | :heavy_check_mark: | :heavy_check_mark:
-Type-deduction | :heavy_check_mark: | :heavy_check_mark:
-Fetch-all-diagnostics | :heavy_check_mark: | :heavy_check_mark:
+Type-hints | :heavy_check_mark: | :heavy_check_mark:
 Fixits-and-diagnostics | :heavy_check_mark: | :heavy_check_mark:
-Semantic-syntax-highlighting | :heavy_check_mark: | :heavy_check_mark:
-Code-completion | work-in-progress | work-in-progress
-Clang-tidy | :heavy_check_mark: | :heavy_check_mark:
-Clang-format | :heavy_check_mark: | :heavy_check_mark:
-JSON-compilation-database | :heavy_check_mark: | :heavy_check_mark:
-Project-builder | :heavy_check_mark: | :heavy_check_mark:
-External configuration via JSON | :heavy_check_mark: | :heavy_check_mark:
+Clang-tidy integration | :heavy_check_mark: | :heavy_check_mark:
+Clang-format integration | :heavy_check_mark: | :heavy_check_mark:
+JSON-compilation-database integration | :heavy_check_mark: | :heavy_check_mark:
+Plain-text-compilation-database integration | :heavy_check_mark: | :heavy_check_mark:
+Arbitrary build targets integration | :heavy_check_mark: | :heavy_check_mark:
+Per-repository cxxd custom configuration (JSON) | :heavy_check_mark: | :heavy_check_mark:
 
 In essence, the main idea behind it is very much alike to what [`LSP`](https://microsoft.github.io/language-server-protocol/) offers 
 and its implementations like [`clangd`](https://clang.llvm.org/extra/clangd.html).
@@ -47,158 +42,174 @@ and its implementations like [`clangd`](https://clang.llvm.org/extra/clangd.html
 Platform | Status | Comments
 ------------ | :-------------: | :-------------:
 Linux | :heavy_check_mark: | Main development environment of this project.
-Windows | :x: | Not officially tested but it might work.
-macOS | :x: | Not officially tested but it might work.
+Other platforms | :x: | Not officially tested but should work wherever `python3` and `libclang` is available
+
+## Supported frontends (editors)
+
+Editor | Link | Description
+------------ | ------------- | -------------
+Vim | [`cxxd-vim`](https://github.com/JBakamovic/cxxd-vim) | A PoC Vim plugin integration that I did for this project and which became my daily driver since then.
 
 ## Dependencies
-Required: `Python2`, `libclang` (with `Python` bindings), `g++`
+
+Required: `Python3`, `libclang` (with `Python` bindings)
 
 Optional: `clang-format`, `clang-tidy`
 
-In `Fedora`-based distributions, one may install the dependencies by running:
-* `sudo dnf install python2 clang-devel clang-libs clang-tools-extra && pip install --user clang`
+Platform | Install
+------------ | -------------
+`Fedora` | `sudo dnf install python3 clang-devel clang-libs clang-tools-extra && pip install --user clang`
+`Debian` | `sudo apt-get install python3 libclang-dev clang-tidy clang-format && pip install --user clang`
 
-In `Debian`-based distributions, one may install the dependencies by running:
-* `sudo apt-get install python2.7 libclang-dev clang-tidy clang-format && pip install --user clang`
+# Configuration
 
-# API
+To run `cxxd` server against the source code one should provide `.cxxd_config.json` configuration file and put it into the root of the project repository.
 
-API tries to stay fairly trivial and straightforward without putting too much burden (impl. details) on the frontend side but there are couple of important bits and pieces that should be understood in order to efficiently use this API.
+This file can be used to provide project-specific configurations such as:
 
-## Design
-### Services
-Aforementioned features are organized into [services](services).
-Each [service](service.py):
-* Is assigned its own unique ID
-* Runs in its own context (process)
-* Supports a set of common operations: `startup`, `shutdown`, `request`
-* Provides a user-defined hook, so called [`plugin`](service_plugin.py), to be invoked on completion of any of the supported operations
+Category | Type | Value | Description
+------------ | ------------- | ------------- | ------------- 
+ `configuration` | | | `cxxd` at the bare minimum requires either `compile_commands.json` or `compile_flags.txt` to be provided with the project.
+ . | `type` | `compilation-database`, `compile-flags`, `auto-discovery` | Depending on how do you want to run `cxxd` server against your project select one of those options. While `compilation-database` is the most recommended way which should be used for real-world projects, `compile-flags` is provided only for convenience purposes and should be used only for a very simple and small projects. With `auto-discovery` option, `cxxd` will try to figure out itself what type of configuration is project using. If no `type` is provided then `cxxd` will fallback to implicit `auto-discovery-try-harder` mode.
+ . | `compilation-database` | `target : { build-target1:build-dir1, ..., build-targetN:build-dirN}` | Real-world projects will have different build target configurations and `target` field can be used to define a list of relevant build targets and their accompanying build directories. E.g. `compilation-database : { target : { 'debug': 'build/debug', 'relwithdebinfo': 'build/relwithdebinfo', 'debug-asan': 'build/debug-asan'}}`
+ . | `compile-flags` | Same as with `compilation-database` option. | Same as with `compilation-database` option.
+ . | `auto-discovery` | `search-paths: [list of directories]` | Cannot be used for defining arbitrary build targets. Provided only as a quickstart convenience method. Use `search-paths` field to provide a list of directories where `cxxd` will look for `compile_commands.json` or `compile_flags.txt`. If not provided `cxxd` will use some of the implicitly predefined search paths.
+ `project-builder` | | | To make use of previously defined build-targets from `configuration::compilation-database` or `configuration::compile-flags` here we can define the actual build commands to be run by `cxxd` server.
+ . | `target` | `target : { build-target1: { cmd: build-target1-specific-build-cmd }, ..., build-targetN: {cmd: build-targetN-specific-build-cmd}` | Mind that build-target names used here must match the build-target names used in `configuration::compilation-database` or `configuration::compile-flags`. Example of build-target commands: `target : { 'debug': 'cmake . -GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && ninja', 'relwithdebinfo': 'cmake . -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && ninja', 'debug-asan': 'cmake . -GNinja -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && ninja'}}`. You can add any amount of arbitrary build target commands here.
+  `indexer` | | | Source-code indexing related settings.
+ . | `exclude-dirs` | A list of directories | Used as a hint to `cxxd` indexer to exclude certain <directory> from being indexed. Commonly these can be directories such as `build`, `cmake`, `external`, `third-party` etc.
+ . | `extra-file-extensions` | A list of file extensions| Used as a hint to `cxxd` indexer to also index files with non-standard C or C++ extensions that your project might be using. `cxxd` will try hard to implicitly identify most of the non-standard C and C++ extensions found in the wild but in case it doesn't, this is a setting for it.
+  `clang-format` | | | Here we can customize how we want to use `clang-format` for given repository.
+ . | `binary` | path-to-specific-clang-format-binary | Sometimes system-wide installed `clang-format` version will not match the needs of real-world projects. It can be either too old or too recent. This setting allows to set the specific version of `clang-format` binary provided that the one exists in the given path. E.g. `'binary': '/opt/clang+llvm-8.0.0-x86_64-linux-gnu/bin/clang-format'`.
+ . | `args` | `clang-format` specific cmd-line args | Here we can provide a list of any arguments that we want to pass over to `clang-format` invocation. For example, applying `clang-format` immediatelly and in-place following the `clang-format` configuration hosted by our repository can be done with `'args' : { '-i' : true, '--style' : 'file' }`. We can use this list to basically pass any argument that given version of `clang-format` can recognize and tweak it according to the project-specific needs.
+ `clang-tidy` | | | Here we can customize how we want to use `clang-tidy` for given repository.
+ . | `binary` | path-to-specific-clang-tidy-binary | Sometimes system-wide installed `clang-tidy` version will not match the needs of real-world projects. It can be either too old or too recent. This setting allows to set the specific version of `clang-tidy` binary provided that the one exists in the given path. E.g. `'binary': '/opt/clang+llvm-8.0.0-x86_64-linux-gnu/bin/clang-tidy'`.
+ . | `args` | `clang-tidy` specific cmd-line args | Here we can provide a list of any arguments that we want to pass over to `clang-tidy` invocation. For example, to enable bugprone, cppcoreguidelines and readability `clang-tidy` checks we would do `'args' : { '-checks' : "'-*,bugprone-*,cppcoreguidelines-*,readability-*'", "-extra-arg" : "'-Wno-unknown-warning-option'", '-header-filter' : '.*' }`. We can use this list to basically pass any argument that given version of `clang-tidy` can recognize and tweak it according to the project-specific needs.
+ `clang` | | | Here we can optionally set some of the `clang`-specific settings. Should be needed very rarely.
+ . | `library-file` | path-to-specific-libclang-so-library | When updating your system, sometimes a new version of `libclang` can introduce bugs or changes in behavior which will result with glitches in the usage experience. Same can happen with the python bindings of `libclang`. Because `cxxd` does not have a capacity to be tested against every version of `libclang` and its python bindings, `library-file` serves the purpose to tell `cxxd` to use a certain version of `libclang`. If not provided, `cxxd` will by default use the system-wide one, which in most cases should be enough. However, if you suddenly start to experience the issues, which you have not before, this should be a first thing to check. And possibly revert the `libclang` version to an earlier one. E.g. `'library-file': '/usr/lib64/libclang.so.14.0.5'`.
 
-### Server
-Communication with any of the `service` is established/routed via proxy [`server`](server.py) which sits in between the client (frontend) and corresponding `service`. Server implements a very simple API:
-* `start-all-services`
-* `start-service`
-* `shutdown-all-services`
-* `shutdown-service`
-* `send-service-request`
+## Compilation database
 
-[Public API](api.py), which is exposed to clients, is implemented on top of `server` API.
+Compilation database is a requirement for `cxxd`. It can come in two different forms: `compile_commands.json` (recommended) or `compile_flags.txt` (should be used only as a fallback when generating `compile_commands.json` is not possible)
 
-### Async
-API, due to the nature of features being implemented, is designed to work in an **asynchronous** fashion. That means that retrieving the result from corresponding operation cannot be done via regular (synchronous) return-value mechanism but instead one must register a hook (callback) object which will then be invoked once the result is ready (after operation has completed). These callbacks we call `plugin`s.
+### compile_commands.json
 
-### Plugin
-Plugin is a mechanism to subscribe for a result of an asynchronous operation. This is a customization go-to point for client code to decide what to do with the result (e.g. process it further and communicate it back to the frontend using the appropriate inter-process mechanism).
+TL;DR in CMake projects you would simply add `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` to your CMake build invocation call. Or you could bake this setting into the `CMakeLists.txt` with `set(CMAKE_EXPORT_COMPILE_COMMANDS ON)`. And you're done.
 
-### Diagram
+`CMake`/`Bazel`/`waf`/`Qbs`/`ninja`/`clang` have native and built-in support for generating this type of compilation database. [Here's](https://sarcasm.github.io/notes/dev/compilation-database.html#build-systems-and-compilers) a good summary on how to use each of those. If you don't use any of those build systems, then [same page](https://sarcasm.github.io/notes/dev/compilation-database.html#specialized-tools) provides another good summary on how to try to generate the compilation database in alternative ways.
 
-![Diagram](docs/client-server-architecture.png)
+### compile_flags.txt
 
-### Example usage
+If generating the `compile_commands.json` is not possible to achieve within your environment, you can hand-code the build flags yourself and put it into the file named `compile_flags.txt`. E.g.
 
-#### `cxxd` integration tests
+```
+-I./lib
+-I./include
+-DFEATURE_XX
+-DFEATURE_YY
+-Wall
+-Werror
+```
 
-[Integration test suite](tests/integration/test_all.py) is actually a representative example of a frontend which has a main purpose in validating the data computed by the services (e.g. if `go-to-definition` returns a valid/expected source code location). Some other frontends will rather like to do something more with the data, e.g. visualize it or populate the UI elements with it.
+# Example of configuration
 
-So, integration tests have all of the important bits which depict the usage of an API:
+For completness and quickstart sake here's an example of a config file that I used while hacking on the MySQL database engine at Oracle. You can use it as starting point to create your own.
 
-* We have to [start the server](tests/integration/test_all.py#L70-L80) before anything else.
+I used out-of-source builds with plenty of different ways to build and test the code. My regular workflow included running both sanitized (ASAN, UBSAN) and non-sanitized `debug` or `relwithdebinfo` builds. Sometimes I also had to test or backport the changes from MySQL 8.x to MySQL 5.x so I also had the build targets for that purpose. Later on I even tweaked the build target commands to include the way to run the build in distributed fashion through `distcc` and `icecream`.
 
-* A mechanism which provides customization point for application-specific purposes is [factory function](tests/integration/test_all.py#L17-L26). Factory function will be invoked during the server startup phase. Its purpose is to provide a means to instantiate an application-specific server with main (customization) part being the [registration of application-specific plugins](tests/integration/test_all.py#L22-L25).
+`clang-format` version had to strictly adhere to specific version declared to be used by MySQL. Occassionally this version would be bumped so I also occassionally bumped the version in the config file.
 
-* Application-specific plugins in integration tests will only [make a copy](tests/integration/cxxd_plugins.py#L12) of received data to be able to [validate its contents](tests/integration/test_all.py#L114) from the test execution context.
+Some parts of the MySQL used non-standard file extensions for the source code such as `*.ic`, `.i` or `*.tpp`. To make them visible to the `cxxd` indexer I have enumerated them in the `extra-file-extensions` field. Similarly, I have hinted the `cxxd` indexer not to index 3rd-party source code that is found in `extra` directory.
 
-* To communicate the received data to different execution contexts (processes), one shall use some form of inter-process communication mechanisms. This integration test suite implements the inter-process communication by utilizing the [shared-memory](tests/integration/cxxd_callbacks.py#L10) to store the data and [named-semaphores](tests/integration/cxxd_callbacks.py#L179) to synchronize between R/W accesses. Some other application will use other means to achieve the same (i.e. to communicate the data back to `vim` instance one could make use one of the [RPC mechanisms](http://vimdoc.sourceforge.net/htmldoc/remote.html) that `vim` provides).
-
-* [Example](tests/integration/test_all.py#L112-114) of triggering the service is running the source code indexer on the given directory, waiting until it is completed and querying if it has run successfuly.
-
-* Many other examples depicting the usage of an API
-
-#### Frontend implementation for Vim
-
-* [`cxxd-vim`](https://github.com/JBakamovic/cxxd-vim)
-
-## Public API
-
-### General `cxxd` server startup/shutdown API
-
-| API | Return Value |
-| ------------- |:-------------:|
-| `server_start(get_server_instance, get_server_instance_args, project_root_directory, log_file)` | `handle` |
-| `server_stop(handle, *payload)`| `status`, `payload` |
-| `server_start_all_services(handle, *payload)` | `status`, `payload` |
-| `server_stop_all_services(handle, *payload)` | `status`, `payload` |
-
-----------------------------
-
-### Source code model API
-
-| API | Return Value |
-| ------------- |:-------------:|
-| `source_code_model_start(handle, compiler_args)` | `status`, `payload` |
-| `source_code_model_stop(handle, subscribe_for_callback)` | `status`, `payload` |
-| `source_code_model_semantic_syntax_highlight_request(handle, filename, contents)` | `status`, [`translation_unit_ast`, `ast_visitor_function`] |
-| `source_code_model_diagnostics_request(handle, filename, contents)` | `status`, [`diagnostics_iterator`, `diagnostics_visitor_function`, `fixit_visitor_function`] |
-| `source_code_model_type_deduction_request(handle, filename, contents, line, col)` | `status`, `type_spelling` |
-| `source_code_model_go_to_definition_request(handle, filename, contents, line, col)` | `status`, [`definition_filename`, `definition_line`, `definition_column`] |
-| `source_code_model_go_to_include_request(handle, filename, contents, line)` | `status`, `include_header_filename` |
-| `source_code_model_indexer_run_on_single_file_request(handle, filename, contents)` | `status`, `None` |
-| `source_code_model_indexer_run_on_directory_request(handle)` | `status`, `None` |
-| `source_code_model_indexer_drop_single_file_request(handle, filename)` | `status`, `None` |
-| `source_code_model_indexer_drop_all_request(handle, remove_db_from_disk)` | `status`, `None` |
-| `source_code_model_indexer_drop_all_and_run_on_directory_request(handle)` | `status`, `None` |
-| `source_code_model_indexer_find_all_references_request(handle, filename, line, col)` | `status`, list_of_references(`filename`, `line`, `column`, `context`) |
-| `source_code_model_indexer_fetch_all_diagnostics_request(handle, sorting_strategy)` | `status`, list_of_diagnostics(`filename`, `line`, `column`, `description`, `severity`) |
-
-----------------------------
-
-### Project Builder API
-
-| API | Return Value |
-| ------------- |:-------------:|
-| `project_builder_start(handle)` | `status`, `payload` |
-| `project_builder_stop(handle, subscribe_for_callback)` | `status`, `payload` |
-| `project_builder_request(handle, build_command)` | `status`, [`build_cmd_output_filename`, `build_exit_code`, `duration`] |
-
-----------------------------
-
-### Clang-format API
-
-| API | Return Value |
-| ------------- |:-------------:|
-| `clang_format_start(handle)` | `status`, `payload` |
-| `clang_format_stop(handle, subscribe_for_callback)` | `status`, `payload` |
-| `clang_format_request(handle, filename)` | `status`, `None` |
-
-----------------------------
-
-### Clang-tidy API
-
-| API | Return Value |
-| ------------- |:-------------:|
-| `clang_tidy_start(handle, json_compilation_database)` | `status`, `payload` |
-| `clang_tidy_stop(handle, subscribe_for_callback)` | `status`, `payload` |
-| `clang_tidy_request(handle, filename, apply_fixes)` | `status`, `clang_tidy_output_filename` |
-
-# Screenshots
-
-## [Screenshots from cxxd-vim](https://github.com/JBakamovic/cxxd-vim/blob/master/README.md#screenshots)
+```
+{
+    "configuration" : {
+        "type" : "compilation-database",
+        "compilation-database" : {
+            "target" : {
+                "debug" : "../build/trunk/debug",
+                "debug_asan" : "../build/trunk/debug_asan",
+                "debug_ubsan" : "../build/trunk/debug_ubsan",
+                "relwithdebinfo" : "../build/trunk/relwithdebinfo",
+                "relwithdebinfo_asan" : "../build/trunk/relwithdebinfo_asan",
+                "relwithdebinfo_ubsan" : "../build/trunk/relwithdebinfo_ubsan",
+                "debug5" : "../build/5.x/debug",
+                "relwithdebinfo5" : "../build/5.x/relwithdebinfo",
+             }
+        }
+    },
+    "indexer" : {
+        "exclude-dirs" : [
+            "extra"
+        ],
+        "extra-file-extensions" : [
+            ".ic",
+            ".i",
+            ".tpp"
+        ]
+    },
+    "clang-tidy" : {
+        "args" : {
+            "-checks" : "'-*,bugprone-*,cert-*,clang-analyzer-*,-clang-analyzer-osx*,misc-*,performance-*,portability-*,readability-*",
+            "-extra-arg" : "'-Wno-unknown-warning-option'",
+            "-header-filter" : ".*"
+        }
+    },
+    "clang-format" : {
+        "binary" : "/opt/clang+llvm-8.0.0-x86_64-linux-gnu/bin/clang-format",
+        "args" : {
+            "-i" : true,
+            "--style" : "file"
+        }
+    },
+    "project-builder" : {
+        "target" : {
+            "debug" : {
+                "cmd" : "cmake ../../../trunk -GNinja -DCMAKE_BUILD_TYPE=Debug -DDOWNLOAD_BOOST=ON -DWITH_BOOST=../ -DWITH_UNIT_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && ninja"
+            },
+            "debug_asan" : {
+                "cmd" : "cmake ../../../trunk -GNinja -DCMAKE_BUILD_TYPE=Debug -DDOWNLOAD_BOOST=ON -DWITH_BOOST=../ -DWITH_UNIT_TESTS=ON -DWITH_ASAN=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && ninja"
+            },
+            "debug_ubsan" : {
+                "cmd" : "cmake ../../../trunk -GNinja -DCMAKE_BUILD_TYPE=Debug -DDOWNLOAD_BOOST=ON -DWITH_BOOST=../ -DWITH_UNIT_TESTS=ON -DWITH_UBSAN=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && ninja"
+            },
+            "relwithdebinfo" : {
+                "cmd" : "cmake ../../../trunk -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DDOWNLOAD_BOOST=ON -DWITH_BOOST=../ -DWITH_UNIT_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && ninja"
+            },
+            "relwithdebinfo_asan" : {
+                "cmd" : "cmake ../../../trunk -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DDOWNLOAD_BOOST=ON -DWITH_BOOST=../ -DWITH_UNIT_TESTS=ON -DWITH_ASAN=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && ninja"
+            },
+            "relwithdebinfo_ubsan" : {
+                "cmd" : "cmake ../../../trunk -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DDOWNLOAD_BOOST=ON -DWITH_BOOST=../ -DWITH_UNIT_TESTS=ON -DWITH_UBSAN=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && ninja"
+            },
+            "debug5" : {
+                "cmd" : "cmake ../../../5.x -GNinja -DCMAKE_BUILD_TYPE=Debug -DDOWNLOAD_BOOST=ON -DWITH_BOOST=../ -DWITH_UNIT_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && ninja"
+            },
+            "relwithdebinfo5" : {
+                "cmd" : "cmake ../../../5.x -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DDOWNLOAD_BOOST=ON -DWITH_BOOST=../ -DWITH_UNIT_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && ninja"
+            },
+        }
+    }
+}
+```
 
 # FAQ
 
 ## How do I make use of this in <insert_environment_of_your_choice>?
 
-Look for and install a frontend suitable for your environment. I.e. [cxxd-vim](https://github.com/JBakamovic/cxxd-vim) if you want to try it out from Vim. This is only a backend server.
-Other supported frontends are listed in the table from above and hopefully more will come with the help of community.
+Currently there's only a Vim [cxxd-vim](https://github.com/JBakamovic/cxxd-vim) plugin that I have developed as a PoC and which I have been using as my daily driver since then. On a semi-regular base I try to keep it up to date with the bugfixes and less often with the new features.
 
-## How do I develop a new frontend on top of it?
+To integrate `cxxd` with another editor one should read through the [architecture overview](arch.md). Also, file a ticket if you need help.
 
-Understand the [API](#api). Look how [cxxd integration tests](#cxxd-integration-tests) have been implemented on top if it. Look into other available frontend implementations, such as the one for [Vim](#frontend-implementation-for-vim).
+## What about clangd and other language server implementations
 
-## Why?
+Fun fact: this project actually started to grow the [whole idea and implementation](https://github.com/JBakamovic/yavide/commit/1100b027ba80637c2382913cb14f1a8ea34f3930#diff-a74ad8dfacd4f985eb3977517615ce25) 
+before [LSP (and clangd) has been put into life](https://code.visualstudio.com/blogs/2016/06/27/common-language-protocol). And I am basically hacking on `cxxd` and `cxxd-vim` codebase since then. But I do it only occassionaly and as much as my spare time allows me to.
 
-One may question the reasoning behind the existence of this project (given that we have other alternatives such as aforementioned `clangd`),
-but the [whole idea and implementation](https://github.com/JBakamovic/yavide/commit/1100b027ba80637c2382913cb14f1a8ea34f3930#diff-a74ad8dfacd4f985eb3977517615ce25) 
-started to grow couple of months before [LSP has been officially announced](https://code.visualstudio.com/blogs/2016/06/27/common-language-protocol) and, this being my own pet project, I decided not to stop with the development but to try to drive it more forward.
+It turns out that writing a language server implementation on top of the `libclang` backend is a mine field. Complex C and C++ compilation process doesn't make this situation any easier. Variety of build systems available and multitude of different ways on how you can build a model of your code due to arbitary number of build targets also makes it a bigger challenge. And only because I implemented both the language server side and the UI frontend side that accompanies it, and everything from the scratch, it happens that I find it easier (and more fun!) to hack through my own codebase and learning something new rather than waiting on other similar tools to provide the fixes, if at all. I tried many of them and they all experience from same or similar issues I stumble upon as well. YMMV of course.
 
-Idea may not have been obvious or recognized by many people as it has been actively developed under my other project, [`Yavide`](https://github.com/JBakamovic/yavide), which is a heavily modded Vim so naturally not really attracted by many. In order to enable usage from different editors (or any other type of frontends), I have decied to finally put some effort into packaging the server functionality into this standalone repository.
+I also implemented a non-LSP compatible protocol which means that I am free to decide and integrate whatever I find interesting for a development workflow. One such example is support for arbitrary build targets which happens to have an actual impact on how the language server backend will understand your code or will not. Browsing or indexing or code-completion context isn't the same across "debug" or "debug-with-some-fancy-feature" or "relwithdebinfo" targets. For that reason, `cxxd` is always started against the specific build target.
+
+# Screenshots
+
+To see how it looks like in action you may have a look at the [screenshots from cxxd-vim](https://github.com/JBakamovic/cxxd-vim/blob/master/README.md#screenshots).
