@@ -41,10 +41,10 @@ class ProjectBuilder(cxxd.service.Service):
         return False, None
 
     def _run_the_build(self, cmd):
-        start = time.clock()
+        start = time.process_time()
         self.build_cmd_output_file.truncate(0)
         build_exit_code = subprocess.call(cmd, shell=True, stdout=self.build_cmd_output_file, stderr=self.build_cmd_output_file)
-        end = time.clock()
+        end = time.process_time()
         logging.info("Cmd '{0}' took {1}. Status = {2}".format(cmd, end-start, build_exit_code))
         return True, [self.build_cmd_output_file.name, build_exit_code, end-start]
 
