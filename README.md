@@ -34,6 +34,7 @@ JSON-compilation-database integration | :heavy_check_mark: | :heavy_check_mark:
 Plain-text-compilation-database integration | :heavy_check_mark: | :heavy_check_mark:
 Arbitrary build targets integration | :heavy_check_mark: | :heavy_check_mark:
 Per-repository cxxd custom configuration (JSON) | :heavy_check_mark: | :heavy_check_mark:
+Godbolt-like disassembler | :heavy_check_mark: | :heavy_check_mark:
 
 In essence, the main idea behind it is very much alike to what [`LSP`](https://microsoft.github.io/language-server-protocol/) offers 
 and its implementations like [`clangd`](https://clang.llvm.org/extra/clangd.html).
@@ -58,8 +59,8 @@ Optional: `clang-format`, `clang-tidy`
 
 Platform | Install
 ------------ | -------------
-`Fedora` | `sudo dnf install python3 clang-devel clang-libs clang-tools-extra && pip install --user clang`
-`Debian` | `sudo apt-get install python3 libclang-dev clang-tidy clang-format && pip install --user clang`
+`Fedora` | `sudo dnf install python3 clang-devel clang-libs clang-tools-extra && pip install --user clang cxxfilt`
+`Debian` | `sudo apt-get install python3 libclang-dev clang-tidy clang-format && pip install --user clang cxxfilt`
 
 # Configuration
 
@@ -87,6 +88,15 @@ Category | Type | Value | Description
  . | `args` | `clang-tidy` specific cmd-line args | Here we can provide a list of any arguments that we want to pass over to `clang-tidy` invocation. For example, to enable bugprone, cppcoreguidelines and readability `clang-tidy` checks we would do `'args' : { '-checks' : "'-*,bugprone-*,cppcoreguidelines-*,readability-*'", "-extra-arg" : "'-Wno-unknown-warning-option'", '-header-filter' : '.*' }`. We can use this list to basically pass any argument that given version of `clang-tidy` can recognize and tweak it according to the project-specific needs.
  `clang` | | | Here we can optionally set some of the `clang`-specific settings. Should be needed very rarely.
  . | `library-file` | path-to-specific-libclang-so-library | When updating your system, sometimes a new version of `libclang` can introduce bugs or changes in behavior which will result with glitches in the usage experience. Same can happen with the python bindings of `libclang`. Because `cxxd` does not have a capacity to be tested against every version of `libclang` and its python bindings, `library-file` serves the purpose to tell `cxxd` to use a certain version of `libclang`. If not provided, `cxxd` will by default use the system-wide one, which in most cases should be enough. However, if you suddenly start to experience the issues, which you have not before, this should be a first thing to check. And possibly revert the `libclang` version to an earlier one. E.g. `'library-file': '/usr/lib64/libclang.so.14.0.5'`.
+ `disassembly` | | | Godbolt-like utility which allows you to examine the disassembly in selected executable target for a given symbol you requested it for at the source code level.
+ . | `objdump` | |
+ . | `binary` | path-to-specific-objdump-binary | Usually system-wide installed `objdump` will match the needs but if not, this field can be used to pin to particular version of `objdump`. E.g. `'binary': '/opt/clang+llvm-8.0.0-x86_64-linux-gnu/bin/objdump'`
+ . | `intermix-with-src-code` | true or false | Default is false. If you want to see source-code mixed within the disassembled binary set this field to true.
+ . | `visualize-jumps` | true or false | Default is true. If you want to disable ASCII art which visualizes jumps within the disassembled binary set this field to false.
+ . | `syntax` | `intel` or `att` | Default is `intel`. Syntax used for instructions in a disassembled binary.
+ . | `nm` | |
+ . | `binary` | path-to-specific-nm-binary | Usually system-wide installed `nm` will match the needs but if not, this field can be used to pin to particular version of `nm`. E.g. `'binary': '/opt/clang+llvm-8.0.0-x86_64-linux-gnu/bin/nm'`
+ . | `targets-filter` | A list of extensions or directories | Prior to disassembly, a target binary needs to be selected. This filter can be used to remove targets that are not interesting. E.g. `[".so", ".a", "CMake"]`
 
 ## Compilation database
 
@@ -189,6 +199,16 @@ Some parts of the MySQL used non-standard file extensions for the source code su
                 "cmd" : "cmake ../../../5.x -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DDOWNLOAD_BOOST=ON -DWITH_BOOST=../ -DWITH_UNIT_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && ninja"
             },
         }
+    },
+    "disassembly" : {
+        "objdump" : {
+            "intermix-with-src-code" : false,
+            "visualize-jumps" : true,
+            "syntax" : "intel"
+        },
+        "nm" : {
+        },
+        "targets-filter" : [".so", ".a", "CMake"]
     }
 }
 ```

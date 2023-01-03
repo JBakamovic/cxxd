@@ -4,6 +4,7 @@ from . services.source_code_model_service import SourceCodeModelSubServiceId
 from . services.code_completion.code_completion import CodeCompletionRequestId
 from . services.source_code_model.indexer.clang_indexer import SourceCodeModelIndexerRequestId
 from . services.project_builder_service import ProjectBuilderRequestId
+from . services.disassembly_service import DisassemblyRequestId
 
 #
 # Server API
@@ -180,6 +181,26 @@ def clang_tidy_stop(handle, subscribe_for_callback):
 def clang_tidy_request(handle, filename, apply_fixes):
     _server_request_service(handle, ServiceId.CLANG_TIDY, filename, apply_fixes)
 
+#
+# Disassembly service API
+#
+def disassembly_start(handle):
+    _server_start_service(handle, ServiceId.DISASSEMBLY)
+
+def disassembly_stop(handle, subscribe_for_callback):
+    _server_stop_service(handle, ServiceId.DISASSEMBLY, subscribe_for_callback)
+
+def disassembly_list_targets(handle):
+    _server_request_service(handle, ServiceId.DISASSEMBLY, DisassemblyRequestId.LIST_TARGETS)
+
+def disassembly_list_symbol_candidates(handle, target, filename, line, column):
+    _server_request_service(handle, ServiceId.DISASSEMBLY, DisassemblyRequestId.LIST_SYMBOL_CANDIDATES, target, filename, line, column)
+
+def disassembly_run(handle, target, list_symbol_candidate_index):
+    _server_request_service(handle, ServiceId.DISASSEMBLY, DisassemblyRequestId.DISASSEMBLE, target, list_symbol_candidate_index)
+
+def disassembly_asm_doc(handle, asm_instruction):
+    _server_request_service(handle, ServiceId.DISASSEMBLY, DisassemblyRequestId.ASM_INSTRUCTION_INFO, asm_instruction)
 
 #
 # Helper functions.
