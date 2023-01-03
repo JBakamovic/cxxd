@@ -130,8 +130,8 @@ class ClangIndexer():
 
                 # Each subprocess will get an empty DB file to record indexing results into it
                 symbol_db_handle, symbol_db = create_empty_symbol_db(self.root_directory, self.symbol_db_name)
-                os.fsync(indexer_input_handle)
-                os.close(indexer_input_handle)
+                os.fsync(symbol_db_handle)
+                os.close(symbol_db_handle)
 
                 # Start indexing a given chunk in a new subprocess
                 #   Note: Running and handling subprocesses as following, and not via multiprocessing.Process module,
