@@ -5,8 +5,8 @@ import sys
 
 class CompilerArgs():
     class JSONCompilationDatabase():
-        def __init__(self, default_compiler_args, filename):
-            self.default_compiler_args = default_compiler_args
+        def __init__(self, filename):
+            self.default_compiler_args = None
             self.cached_compiler_args = []
             try:
                 self.database = clang.cindex.CompilationDatabase.fromDirectory(os.path.dirname(filename))
@@ -91,15 +91,22 @@ class CompilerArgs():
                 if compile_cmd:
                     for arg in compile_cmd[0].arguments:
                         args.append(arg)
+                    logging.debug('Compile command: {}'.format(' '.join(args)))
+                    logging.debug('Compile command: {}'.format(args))
                     # Since some version of libclang, handling for files not part of the compilation database
                     # (e.g. headers and TUs not yet part of the build system) has been changed and now we have
                     # to special-case it here with eat_minus_minus_path_to_file. Furthermore, headers need more
                     # special care because compiler flag options are not the same as for the TUs.
                     if is_header:
-                        args = self.default_compiler_args + eat_compiler_invocation(eat_minus_minus_path_to_file(args))
+                        args = extract_compiler_include_dir(args[0]) + eat_compiler_invocation(eat_minus_minus_path_to_file(args))
                     else:
-                        args = self.default_compiler_args + eat_compiler_invocation(eat_minus_minus_path_to_file(eat_minus_o_compiler_option(eat_minus_c_compiler_option(args))))
+                        args = extract_compiler_include_dir(args[0]) + eat_compiler_invocation(eat_minus_minus_path_to_file(eat_minus_o_compiler_option(eat_minus_c_compiler_option(args))))
                 return list(args)
+
+            def extract_compiler_include_dir(compiler):
+                includes = extract_system_includes_from(compiler)
+                normalized_includes = [os.path.normpath(include) for include in includes]
+                return list(normalized_includes)
 
             compiler_args = extract_compiler_args(self.database.getCompileCommands(filename), is_header_file(filename))
             if compiler_args:
@@ -144,7 +151,7 @@ class CompilerArgs():
     def set(self, compiler_args_filename):
         self.database_filename = compiler_args_filename
         if self.is_json_database(compiler_args_filename):
-            self.database = self.JSONCompilationDatabase(self.default_compiler_args, compiler_args_filename)
+            self.database = self.JSONCompilationDatabase(compiler_args_filename)
         elif self.is_compile_flags_database(compiler_args_filename):
             self.database = self.CompileFlagsCompilationDatabase(self.default_compiler_args, compiler_args_filename)
         else:

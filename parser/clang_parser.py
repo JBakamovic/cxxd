@@ -29,6 +29,7 @@ def traverse(cursor, client_data, client_visitor = default_visitor):
 
     def visitor(child, parent, client_data):
         assert child != clang.cindex.conf.lib.clang_getNullCursor()
+        assert parent != clang.cindex.conf.lib.clang_getNullCursor()
         child._tu = cursor._tu
         child.ast_parent = parent
         return client_visitor(child, parent, client_data)
@@ -73,7 +74,7 @@ class ClangParser():
             clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD | \
             clang.cindex.TranslationUnit.PARSE_CACHE_COMPLETION_RESULTS | \
             clang.cindex.TranslationUnit.PARSE_PRECOMPILED_PREAMBLE | \
-            clang.cindex.TranslationUnit.PARSE_INCOMPLETE
+            clang.cindex.TranslationUnit.PARSE_INCOMPLETE | 512
 
     def get_compiler_args_db(self):
         return self.compiler_args
