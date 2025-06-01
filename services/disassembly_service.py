@@ -122,12 +122,26 @@ class Disassembly(cxxd.service.Service):
                     return True
             return False
 
+        # This check is needed because of the BRAIN-DEAD bazel design which ... 
+        # ... taa-daaa ... chmod a+x literally _all_ the files in its build cache - yes, that will include
+        # literally anything, from the source code, to headers, to .md files, to json files, yaml files, CMake
+        # build scripts, Bazel build scripts ... anything, literally anything. If someone told me this is true
+        # I wouldn't believe it.
+        def is_elf_binary_or_static_lib(target):
+            # ELF files include executables and shared libs
+            # Static libs are archives/
+            with open(target, 'rb') as f:
+                header = f.read(8)
+            if header.startswith(b'\x7fELF') or header.startswith(b'!<arch>\n'):
+                return True
+            return False
+
         logging.info('Listing targets in {}'.format(self.target_lookup_dir))
         target_candidates = []
-        proc = subprocess.Popen(["find", self.target_lookup_dir, "-type", "f", "-executable"], stdout=subprocess.PIPE)
-        for target in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
-            if not matches_disassembly_filter(target):
-                target_candidates.append(target)
+        with subprocess.Popen(["find", self.target_lookup_dir, "-type", "f", "-executable"], stdout=subprocess.PIPE) as proc:
+            for target in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
+                if not matches_disassembly_filter(target) and is_elf_binary_or_static_lib(target.strip()):
+                    target_candidates.append(target)
         target_candidates.sort()
         logging.info('Targets found: {}'.format(target_candidates))
         return True, target_candidates

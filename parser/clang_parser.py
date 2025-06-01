@@ -191,7 +191,19 @@ class ClangParser():
             if cursor.location.file and cursor.location.file.name == tunit.spelling:  # we're only interested in symbols from associated translation unit
                 if cursor.kind == clang.cindex.CursorKind.INCLUSION_DIRECTIVE:
                     included_file_name = ClangParser.__get_included_file_name(cursor)
+                    logging.debug('1 - {} - {}'.format(cursor.spelling, included_file_name))
                     if included_file_name:
+                        if os.path.islink(included_file_name):
+                            # Sometimes we resolve a header file which is actually a symlink. This is
+                            # what bazel is at least doing with its virtual_includes. We transform such
+                            # symlinks into an actual absolute filepaths since this can easily bite us.
+                            # Although symlink in POSIX is basically a pointer to a file, and therefore
+                            # modifications done through a symlink should be immeditelly visible in an
+                            # actual file, there's no guarantee that this will not interfere with the
+                            # frontend (editor) caching mechanisms, e.g. backup or swap files, and its
+                            # text buffering. Because of this we might very well end up with partial
+                            # updates to a file which we absolutely want to avoid. Hence this transformation.
+                            included_file_name = os.path.abspath(os.path.join(os.path.dirname(included_file_name), os.readlink(included_file_name)))
                         include_directives_list.append((included_file_name, cursor.location.line, cursor.location.column),)
                 return ChildVisitResult.CONTINUE.value  # We don't want to waste time traversing recursively for include directives
             return ChildVisitResult.CONTINUE.value
@@ -357,12 +369,15 @@ class ClangParser():
                 '%-25s' % 'Referenced.USR'
             )
 
-            logging.debug('----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------')
+            logging.debug('-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------')
             self.traverse(tunit.cursor, None, visitor)
             logging.debug(build_flags)
 
     def __do_parse(self, contents_filename, original_filename, build_flags, opts=None):
         try:
+            logging.debug('build_flags={}'.format(build_flags))
+            logging.debug('default_parsing_flags={}'.format(self.default_parsing_flags()))
+            logging.debug('custom opts={}'.format(opts))
             return self.index.parse(
                 path = contents_filename,
                 args = build_flags,

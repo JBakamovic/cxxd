@@ -63,6 +63,25 @@ class CompilerArgs():
                     pass
                 return json_comp_db_command
 
+            def eat_unsupported_flags_and_transform_relative_into_absolute_paths(json_comp_db_command, directory):
+                # Even though compile_commands.json documentation says that paths used in (compiler) arguments
+                # can be relative, it seems like it doesn't work in practice so we have to transform all of such
+                # paths.
+                logging.debug(json_comp_db_command)
+                for idx in range(len(json_comp_db_command)):
+                    if json_comp_db_command[idx] in ['-I', '-iquote', '-isystem']:
+                        json_comp_db_command[idx+1] = os.path.join(directory, json_comp_db_command[idx+1])
+                    elif json_comp_db_command[idx].startswith('-Ibazel'):
+                        json_comp_db_command[idx] = '-I' + os.path.join(directory, json_comp_db_command[idx][2:])
+                    elif json_comp_db_command[idx].startswith('bazel-out'):
+                        json_comp_db_command[idx] = os.path.join(directory, json_comp_db_command[idx])
+                    elif json_comp_db_command[idx].startswith('--sysroot=external'):
+                        json_comp_db_command[idx] = '--sysroot=' + os.path.join(directory, json_comp_db_command[idx][10:])
+                    elif json_comp_db_command[idx] in ['-fno-canonical-system-headers', '-Wformat-truncation', '-Wformat-truncation=1', '-Wformat-truncation=2']:
+                        json_comp_db_command[idx] = ''
+                logging.debug(json_comp_db_command)
+                return json_comp_db_command
+
             def cache_compiler_args(args_list):
                 # JSON compilation database ('compile_commands.json'):
                 #   1. Will include information about translation units only (.cxx)
@@ -96,9 +115,9 @@ class CompilerArgs():
                     # to special-case it here with eat_minus_minus_path_to_file. Furthermore, headers need more
                     # special care because compiler flag options are not the same as for the TUs.
                     if is_header:
-                        args = self.default_compiler_args + eat_compiler_invocation(eat_minus_minus_path_to_file(args))
+                        args = self.default_compiler_args + eat_unsupported_flags_and_transform_relative_into_absolute_paths(eat_compiler_invocation(eat_minus_minus_path_to_file(args)), compile_cmd[0].directory)
                     else:
-                        args = self.default_compiler_args + eat_compiler_invocation(eat_minus_minus_path_to_file(eat_minus_o_compiler_option(eat_minus_c_compiler_option(args))))
+                        args = self.default_compiler_args + eat_unsupported_flags_and_transform_relative_into_absolute_paths(eat_compiler_invocation(eat_minus_minus_path_to_file(eat_minus_o_compiler_option(eat_minus_c_compiler_option(args)))), compile_cmd[0].directory)
                 return list(args)
 
             compiler_args = extract_compiler_args(self.database.getCompileCommands(filename), is_header_file(filename))
