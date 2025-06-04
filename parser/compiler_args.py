@@ -1,4 +1,4 @@
-import clang.cindex
+from cxxd.bindings.clang import cindex as clang_cindex
 import logging
 import os
 import sys
@@ -9,7 +9,7 @@ class CompilerArgs():
             self.default_compiler_args = default_compiler_args
             self.cached_compiler_args = []
             try:
-                self.database = clang.cindex.CompilationDatabase.fromDirectory(os.path.dirname(filename))
+                self.database = clang_cindex.CompilationDatabase.fromDirectory(os.path.dirname(filename))
             except:
                 logging.error(sys.exc_info())
 
