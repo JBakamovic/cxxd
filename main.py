@@ -7,6 +7,18 @@ import logging
 import argparse
 import time
 from multiprocessing import Queue
+
+# Add 'lib' directory to sys.path BEFORE importing cxxd
+import sys
+import os
+
+if __name__ == "__main__":
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # lib/cxxd -> lib
+    lib_dir = os.path.dirname(current_dir)
+    if lib_dir not in sys.path:
+        sys.path.insert(0, lib_dir)
+
 from cxxd.server import Server
 
 #
@@ -132,13 +144,7 @@ def main():
     server_process.join()
     logging.info("Exiting...")
 
+
 if __name__ == "__main__":
-    # Add 'lib' directory to sys.path
-    import os
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    # lib/cxxd -> lib
-    lib_dir = os.path.dirname(current_dir)
-    if lib_dir not in sys.path:
-        sys.path.insert(0, lib_dir)
-        
     main()
+
