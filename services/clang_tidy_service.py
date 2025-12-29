@@ -72,7 +72,6 @@ class ClangTidy(cxxd.service.Service):
         def call_vim_rpc(status, filename, fixes_applied, tidylines):
             json_tidylines = json.dumps(tidylines)
             Utils.call_vim_remote_function(
-                None,
                 "cxxd#services#clang_tidy#run_callback(" + str(int(status)) + ", '" + filename + "', " + str(int(fixes_applied)) + ", " + json_tidylines + ")"
             )
 

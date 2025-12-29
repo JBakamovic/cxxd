@@ -76,6 +76,6 @@ class Messenger:
         call_str = f"{function_name}({', '.join(serialized_args)})"
         
         if self.servername:
-            Utils.call_vim_remote_function(self.servername, call_str)
+            Utils.call_vim_remote_function(call_str)
         else:
             logging.error("Servername required for legacy mode")
