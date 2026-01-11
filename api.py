@@ -127,6 +127,9 @@ def source_code_model_indexer_find_all_references_request(handle, filename, line
 def source_code_model_indexer_fetch_all_diagnostics_request(handle, sorting_strategy):
     _indexer_request(handle, SourceCodeModelIndexerRequestId.FETCH_ALL_DIAGNOSTICS, sorting_strategy)
 
+def source_code_model_indexer_fetch_all_definitions_request(handle):
+    _indexer_request(handle, SourceCodeModelIndexerRequestId.FETCH_ALL_DEFINITIONS)
+
 #
 # Code-completion service API
 #

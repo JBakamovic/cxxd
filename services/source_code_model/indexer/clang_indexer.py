@@ -26,6 +26,7 @@ class SourceCodeModelIndexerRequestId():
     DROP_ALL                  = 0x3
     FIND_ALL_REFERENCES       = 0x10
     FETCH_ALL_DIAGNOSTICS     = 0x11
+    FETCH_ALL_DEFINITIONS     = 0x12
 
 class ClangIndexer():
     supported_ast_node_ids = [
@@ -50,6 +51,7 @@ class ClangIndexer():
             SourceCodeModelIndexerRequestId.DROP_ALL              : self.__drop_all,
             SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES   : self.__find_all_references,
             SourceCodeModelIndexerRequestId.FETCH_ALL_DIAGNOSTICS : self.__fetch_all_diagnostics,
+            SourceCodeModelIndexerRequestId.FETCH_ALL_DEFINITIONS : self.__fetch_all_definitions,
         }
         self.recognized_file_extensions = ['.cpp', '.cc', '.cxx', '.c', '.h', '.hh', '.hpp', 'hxx']
         self.extra_file_extensions = self.cxxd_config_parser.get_extra_file_extensions()
@@ -258,6 +260,64 @@ class ClangIndexer():
         else:
             logging.error('Action cannot be run if symbol database does not exist yet!')
         return db_exists, diagnostics
+
+    def __fetch_all_definitions(self, id, args):
+        logging.info("__fetch_all_definitions called")
+        
+        # Determine output file path
+        if args and len(args) > 0:
+            output_file_path = args[0]
+        else:
+            fd, output_file_path = tempfile.mkstemp(prefix='cxxd_definitions_', suffix='.txt', text=True)
+            os.close(fd)
+
+        db_exists = self.symbol_db_exists()
+        
+        if db_exists:
+            self.symbol_db.open(self.symbol_db_path)
+            try:
+                # OPTIMIZATION:
+                # 1. Use raw tuples directly from DB to avoid accessor method overhead (SymbolDatabase.get_*)
+                # 2. Cache os.path.join, os.sep, and root_dir length
+                # 3. Buffer writes to minimize syscalls (Python's open() buffers by default, but we can tune it)
+                
+                root_dir_len = len(self.root_directory)
+                root_plus_sep = os.path.join(self.root_directory, '') # ensure trailing sep
+                sep = os.sep
+                
+                count = 0
+                
+                with open(output_file_path, 'w', buffering=8192*16) as f: # 128KB buffer
+                    # fetch_all_definitions_raw yields (filename, line, column, context)
+                    for relative_filename, line, column, context in self.symbol_db.fetch_all_definitions_raw():
+                        
+                        # In the DB, 'filename' is relative. Construct absolute.
+                        # Using formatted string is faster than os.path.join in a tight loop if structure is known
+                        # relative_filename does not start with sep since we stripped it.
+                        abs_filename = f"{root_plus_sep}{relative_filename}"
+
+                        # Context/text handling
+                        # context is often just the line content.
+                        text = context.strip() if context else os.path.basename(relative_filename)
+                        if not text:
+                             text = os.path.basename(relative_filename)
+                        
+                        # Format: Text (RelativePath) \t AbsolutePath:Line:Column
+                        # Minimize f-string evaluations
+                        f.write(f"{text} ({relative_filename})\t{abs_filename}:{line}:{column}\n")
+                        count += 1
+                        
+                logging.info(f"__fetch_all_definitions streamed {count} definitions to {output_file_path}")
+                return True, [output_file_path] 
+            except Exception as e:
+                logging.error(f"Error streaming definitions: {e}")
+                import traceback
+                logging.error(traceback.format_exc())
+                return False, None
+        else:
+            logging.error('Action cannot be run if symbol database does not exist yet!')
+            
+        return db_exists, None
 
 
 def index_file_list(root_directory, input_filename_list, compiler_args_filename, output_db_filename):

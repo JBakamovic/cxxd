@@ -10,7 +10,7 @@ class DiagnosticsSortingStrategyId():
 
 class SymbolDatabase():
     VERSION_MAJOR = 0
-    VERSION_MINOR = 2
+    VERSION_MINOR = 3
 
     def __init__(self, db_filename = None):
         self.filename = db_filename
@@ -129,7 +129,16 @@ class SymbolDatabase():
         except:
             logging.error(sys.exc_info())
         return rows
-
+    def fetch_all_definitions_raw(self):
+        try:
+            import time
+            start_time = time.time()
+            # yield raw tuples: (filename, line, column, usr, context, kind, is_definition)
+            yield from self.db_connection.cursor().execute('SELECT filename, line, column, context FROM symbol WHERE is_definition=1')
+            end_time = time.time()
+            logging.info(f"fetch_all_definitions_raw iteration took {end_time - start_time:.4f} seconds")
+        except:
+            logging.error(sys.exc_info())
     def fetch_all_diagnostics(self, sorting_strategy):
         rows = []
         try:
@@ -329,6 +338,9 @@ class SymbolDatabase():
                     is_definition   boolean,         \
                     PRIMARY KEY(filename, usr, line) \
                  )'
+            )
+            self.db_connection.cursor().execute(
+                'CREATE INDEX IF NOT EXISTS idx_symbol_definitions ON symbol (is_definition, filename, line, column, context)'
             )
             self.db_connection.cursor().execute(
                 'CREATE TABLE IF NOT EXISTS diagnostics ( \
