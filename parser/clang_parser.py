@@ -574,13 +574,16 @@ class ClangParser():
         _libclang.clang_getFileName.argtypes     = [clang.cindex.c_object_p]
         _libclang.clang_getFileName.restype      =  clang.cindex._CXString
 
-        return clang.cindex.conf.lib.clang_getCString(
+        res = clang.cindex.conf.lib.clang_getCString(
             _libclang.clang_getFileName(
                 _libclang.clang_getIncludedFile(
                     inclusion_directive_cursor
                 )
             )
         )
+        if hasattr(res, 'decode'):
+            return res.decode('utf-8', 'ignore')
+        return str(res)
 
     @staticmethod
     def __get_clang_version():
