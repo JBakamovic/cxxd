@@ -27,16 +27,28 @@ if __name__ == "__main__":
     parser.add_argument('--input_list',             required=True, help='input file containing all source filenames to be indexed (one filename per each line)')
     parser.add_argument('--output_db_filename',     required=True, help='indexing result will be recorded in this file (SQLite db)')
     parser.add_argument('--log_file',               required=True, help='log file to log indexing actions')
+    parser.add_argument('--worker_id',              required=True, help='ID of the worker process (for logging)')
+    parser.add_argument('--interactive',            action='store_true', help='run in interactive mode (read filenames from stdin)')
 
     args = parser.parse_args()
 
     FORMAT = '[%(asctime)s.%(msecs)03d] [%(levelname)s] [%(filename)s:%(lineno)s] %(funcName)25s(): %(message)s'
-    logging.basicConfig(filename=args.log_file, filemode='w', format=FORMAT, datefmt='%H:%M:%S', level=logging.INFO)
+    logging.basicConfig(filename=args.log_file, filemode='a', format=FORMAT, datefmt='%H:%M:%S', level=logging.INFO)
 
-    from cxxd.services.source_code_model.indexer.clang_indexer import index_file_list
-    index_file_list(
-        args.project_root_directory,
-        args.input_list,
-        args.compiler_args_filename,
-        args.output_db_filename
-    )
+    from cxxd.services.source_code_model.indexer.clang_indexer import index_file_list, index_interactive
+    
+    if args.interactive:
+        index_interactive(
+            args.project_root_directory,
+            args.compiler_args_filename,
+            args.output_db_filename,
+            args.worker_id
+        )
+    else:
+        index_file_list(
+            args.project_root_directory,
+            args.input_list,
+            args.compiler_args_filename,
+            args.output_db_filename,
+            args.worker_id
+        )
