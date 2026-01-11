@@ -223,7 +223,7 @@ class ClangParser():
         # Check if we have this tunit already in the cache ...
         tunit, tunit_build_flags, tunit_timestamp = self.tunit_cache.fetch(original_filename)
         if tunit is None:
-            logging.info('TUnit NOT found in cache!')
+            logging.debug('TUnit NOT found in cache!')
             build_flags = self.compiler_args.get(original_filename)
             tunit = self.__do_parse(
                 contents_filename,
@@ -236,10 +236,10 @@ class ClangParser():
             else:
                 logging.error('Unable to parse TUnit!')
         else:
-            logging.info('TUnit found in cache!')
+            logging.debug('TUnit found in cache!')
             curr_timestamp = os.path.getmtime(contents_filename)
             if tunit_timestamp != curr_timestamp:      # We still have to make sure that cached tunit is not out-of-date.
-                logging.info('But it is too old ... reparsing')
+                logging.debug('But it is too old ... reparsing')
                 tunit = self.__do_parse(
                     contents_filename,
                     original_filename,
@@ -447,8 +447,75 @@ class ClangParser():
                 args = build_flags,
                 options = self.default_parsing_flags() if opts is None else opts
             )
-        except:
-            logging.error(sys.exc_info())
+        except Exception as e:
+            logging.error(f"Failed to parse '{contents_filename}' (original: '{original_filename}')")
+            logging.error(f"Compiler Args: {build_flags}")
+            logging.error(f"Options: {opts}")
+            logging.error(f"Exception: {e}")
+            import traceback
+            logging.error(traceback.format_exc())
+            self.__diagnose_parse_failure(contents_filename, build_flags, self.default_parsing_flags() if opts is None else opts)
+
+    def __diagnose_parse_failure(self, path, args, options):
+        try:
+            from ctypes import byref, c_char_p, c_int, c_void_p, POINTER
+            import clang.cindex
+            
+            lib = clang.cindex.conf.lib
+            if not hasattr(lib, 'clang_parseTranslationUnit2'):
+                logging.error("clang_parseTranslationUnit2 not available in libclang.")
+                return
+
+            # Definition: int clang_parseTranslationUnit2(CXIndex CIdx, const char *source_filename, const char *const *command_line_args, int num_command_line_args, struct CXUnsavedFile *unsaved_files, unsigned num_unsaved_files, unsigned options, CXTranslationUnit *out_TU)
+            
+            # Prepare arguments
+            # CXIndex
+            cx_index = self.index
+            
+            # source_filename
+            f_path = c_char_p(path.encode('utf-8'))
+            
+            # command_line_args
+            # This requires an array of c_char_p
+            c_args = (c_char_p * len(args))()
+            for i, arg in enumerate(args):
+                c_args[i] = c_char_p(str(arg).encode('utf-8'))
+                
+            # options
+            c_options = c_int(options)
+            
+            # out_TU (pointer to void*)
+            out_tu = c_void_p()
+            
+            # Call function
+            # We assume no unsaved files for diagnosis (simpler, usually indexer runs on saved files)
+            # lib.clang_parseTranslationUnit2.argtypes = [c_void_p, c_char_p, POINTER(c_char_p), c_int, c_void_p, c_int, c_int, POINTER(c_void_p)]
+            # lib.clang_parseTranslationUnit2.restype = c_int
+            
+            res = lib.clang_parseTranslationUnit2(
+                cx_index,
+                f_path,
+                c_args,
+                len(args),
+                None, # unsaved_files
+                0,    # num_unsaved_files
+                c_options,
+                byref(out_tu)
+            )
+            
+            error_codes = {
+                0: 'CXError_Success',
+                1: 'CXError_Failure (Generic)',
+                2: 'CXError_Crashed (Libclang crashed)',
+                3: 'CXError_InvalidArguments',
+                4: 'CXError_ASTReadError'
+            }
+            
+            msg = error_codes.get(res, f'Unknown Error Code {res}')
+            logging.error(f"Diagnostic Result: {msg}")
+
+        except Exception as e:
+            logging.error(f"Failed to run diagnosis: {e}")
 
     @staticmethod
     def __extract_dependent_type_kind(cursor):
