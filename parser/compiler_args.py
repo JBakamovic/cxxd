@@ -62,6 +62,26 @@ class CompilerArgs():
                 except ValueError:
                     pass
                 return json_comp_db_command
+            
+            def eat_conflicting_language_args(json_comp_db_command):
+                # We force '-x c++' at the beginning, so we must remove conflicting language specifications
+                # that might appear later in the command line (e.g. 'c++-header' or 'c++' dangling from a stripped -x)
+                new_args = []
+                skip_next = False
+                for i, arg in enumerate(json_comp_db_command):
+                    if skip_next:
+                        skip_next = False
+                        continue
+                    if arg == '-x':
+                        if i + 1 < len(json_comp_db_command) and json_comp_db_command[i+1] in ('c++', 'c++-header', 'c', 'c-header'):
+                            skip_next = True
+                            continue
+                    if arg in ('-xc++', '-xc++-header', '-xc', '-xc-header'):
+                        continue
+                    if arg in ('c++', 'c++-header', 'c', 'c-header'):
+                        continue
+                    new_args.append(arg)
+                return new_args
 
             def cache_compiler_args(args_list):
                 # JSON compilation database ('compile_commands.json'):
@@ -96,9 +116,10 @@ class CompilerArgs():
                     # to special-case it here with eat_minus_minus_path_to_file. Furthermore, headers need more
                     # special care because compiler flag options are not the same as for the TUs.
                     if is_header:
-                        args = self.default_compiler_args + eat_compiler_invocation(eat_minus_minus_path_to_file(args))
+                        args = self.default_compiler_args + eat_conflicting_language_args(eat_compiler_invocation(eat_minus_minus_path_to_file(eat_minus_o_compiler_option(eat_minus_c_compiler_option(args)))))
                     else:
-                        args = self.default_compiler_args + eat_compiler_invocation(eat_minus_minus_path_to_file(eat_minus_o_compiler_option(eat_minus_c_compiler_option(args))))
+                        args = self.default_compiler_args + eat_conflicting_language_args(eat_compiler_invocation(eat_minus_minus_path_to_file(eat_minus_o_compiler_option(eat_minus_c_compiler_option(args)))))
+                    
                 return list(args)
 
             compiler_args = extract_compiler_args(self.database.getCompileCommands(filename), is_header_file(filename))
