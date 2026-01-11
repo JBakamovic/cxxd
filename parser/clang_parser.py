@@ -5,19 +5,20 @@ import sys
 from cxxd.parser.ast_node_identifier import ASTNodeId
 from cxxd.parser.compiler_args import CompilerArgs
 
-class ChildVisitResult(clang.cindex.BaseEnumeration):
+class ChildVisitResult:
     """
     A ChildVisitResult describes how the traversal of the children of a particular cursor should proceed after visiting a particular child cursor.
     """
-    _kinds = []
-    _name_map = None
+    def __init__(self, value, name):
+        self.value = value
+        self.name = name
 
     def __repr__(self):
         return 'ChildVisitResult.%s' % (self.name,)
 
-ChildVisitResult.BREAK = ChildVisitResult(0) # Terminates the cursor traversal.
-ChildVisitResult.CONTINUE = ChildVisitResult(1) # Continues the cursor traversal with the next sibling of the cursor just visited, without visiting its children.
-ChildVisitResult.RECURSE = ChildVisitResult(2) # Recursively traverse the children of this cursor, using the same visitor and client data.
+ChildVisitResult.BREAK = ChildVisitResult(0, 'BREAK') # Terminates the cursor traversal.
+ChildVisitResult.CONTINUE = ChildVisitResult(1, 'CONTINUE') # Continues the cursor traversal with the next sibling of the cursor just visited, without visiting its children.
+ChildVisitResult.RECURSE = ChildVisitResult(2, 'RECURSE') # Recursively traverse the children of this cursor, using the same visitor and client data.
 
 def default_visitor(child, parent, client_data):
     """Default implementation of AST node visitor."""
