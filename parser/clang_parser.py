@@ -72,14 +72,78 @@ New version provides more functionality (i.e. AST parent node) which is needed i
 """
 clang.cindex.Cursor.get_children = get_children_patched
 
+import glob
+
 class ClangParser():
+    _libclang_configured = False
+
     def __init__(self, compiler_args_filename, tunit_cache, clang_library_file=None):
         if clang_library_file is not None:
-            clang.cindex.Config.set_library_file(clang_library_file)
+            if not ClangParser._libclang_configured:
+                 clang.cindex.Config.set_library_file(clang_library_file)
+                 ClangParser._libclang_configured = True
+        else:
+            ClangParser.try_configure_libclang()
+            
         self.index         = clang.cindex.Index.create()
         self.compiler_args = CompilerArgs(compiler_args_filename)
         self.tunit_cache   = tunit_cache
         logging.info("libclang version: '{0}'".format(ClangParser.__get_clang_version()))
+
+    @staticmethod
+    def try_configure_libclang():
+        if ClangParser._libclang_configured:
+            return
+
+        # First, try to see if cindex can find the library on its own
+        if clang.cindex.Config.loaded:
+            ClangParser._libclang_configured = True
+            logging.info(f"Using already loaded libclang.{(' Path: ' + clang.cindex.Config.library_file) if clang.cindex.Config.library_file else ' (System Default)'}")
+            return
+
+        try:
+             # Try to load with defaults
+             clang.cindex.conf.get_cindex_library()
+             ClangParser._libclang_configured = True
+             logging.info(f"Successfully loaded system default libclang.{(' Path: ' + clang.cindex.Config.library_file) if clang.cindex.Config.library_file else ''}")
+             return
+        except:
+             # If default loading fails, proceed to auto-detection
+             logging.info("System default libclang not found. Attempting auto-discovery...")
+             pass
+
+        # Attempt to find libclang.so or compatible versions
+        # We carefully avoid libclang-cpp.so which contains the C++ API, not the C API expected by cindex.
+        search_paths = [
+            "/usr/lib/llvm-*/lib/libclang.so",
+            "/lib/x86_64-linux-gnu/libclang-[0-9]*.so*",
+            "/usr/lib/x86_64-linux-gnu/libclang-[0-9]*.so*",
+            "/usr/lib/libclang.so",
+            # Fedora / Red Hat / CentOS / openSUSE
+            "/usr/lib64/libclang.so",
+            "/usr/lib64/libclang-[0-9]*.so*",
+            "/usr/lib64/llvm/lib/libclang.so", # Sometimes here?
+        ]
+        
+        candidate = None
+        for pattern in search_paths:
+            # Sort reverse to pick higher versions (e.g. 20 over 14) usually
+            matches = sorted(glob.glob(pattern), reverse=True)
+            for match in matches:
+                 if "libclang-cpp" in match:
+                     continue
+                 candidate = match
+                 break
+            if candidate:
+                break
+                
+        if candidate:
+            try:
+                clang.cindex.Config.set_library_file(candidate)
+                ClangParser._libclang_configured = True
+                logging.info(f"Auto-configured libclang: {candidate}")
+            except Exception as e:
+                logging.error(f"Failed to auto-configure libclang: {e}")
 
     def default_parsing_flags(self):
         # TODO Add support for PARSE_INCLUDE_BRIEF_COMMENTS_IN_CODE_COMPLETION
