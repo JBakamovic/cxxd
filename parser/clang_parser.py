@@ -522,11 +522,24 @@ class ClangParser():
     def __get_clang_version():
         # NOTE There is no API exposed for getting the version in libclang Python
         #      bindings so we do it by ourselves here.
-        _libclang = clang.cindex.conf.get_cindex_library()
-        _libclang.clang_getClangVersion.argtypes = None
-        _libclang.clang_getClangVersion.restype  = clang.cindex._CXString
+        try:
+            _libclang = clang.cindex.conf.get_cindex_library()
+            _libclang.clang_getClangVersion.argtypes = None
+            _libclang.clang_getClangVersion.restype  = clang.cindex._CXString
 
-        return clang.cindex.conf.lib.clang_getCString(
-            _libclang.clang_getClangVersion()
-        )
+            # clang_getClangVersion returns a _CXString by value.
+            version_cxstring = _libclang.clang_getClangVersion()
+            
+            try:
+                res = clang.cindex.conf.lib.clang_getCString(version_cxstring)
+                if res is None:
+                    return "Unknown Clang Version (NULL)"
+                if hasattr(res, 'decode'):
+                    return res.decode('utf-8', 'replace')
+                return str(res)
+            except Exception as e:
+                 return f"Unknown Clang Version (Decode Error: {e})"
+                 
+        except Exception as e:
+            return f"Unknown Clang Version (Error: {e})"
 
