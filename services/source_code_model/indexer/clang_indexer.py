@@ -156,10 +156,12 @@ class ClangIndexer():
             def send_work(worker, filename):
                 try:
                     # Write bytes to unbuffered stdin
-                    worker.stdin.write((filename + "\n").encode('utf-8'))
+                    # Protocol: filename|completed_count|total_count
+                    msg = f"{filename}|{completed_files + 1}|{total_files}\n"
+                    worker.stdin.write(msg.encode('utf-8'))
                     worker.stdin.flush()
                     worker_state[worker] = {'file': filename, 'start_time': time.time()}
-                    logging.debug(f"Master: Sent {filename} to Worker {worker.args}")
+                    # logging.debug(f"Master: Sent {filename} to Worker {worker.args}")
                     return True
                 except (BrokenPipeError, IOError):
                     logging.error(f"Worker {worker.args} died unexpectedly.")
@@ -441,12 +443,21 @@ def index_interactive(root_directory, compiler_args_filename, output_db_filename
             if not line:
                 break
             
-            # Simple protocol: just filename
-            filename = line.strip()
+            # Protocol: filename|completed_count|total_count
+            parts = line.strip().split('|')
+            filename = parts[0]
+            if len(parts) >= 3:
+                completed = int(parts[1])
+                total = int(parts[2])
+                pct = (completed / total * 100) if total > 0 else 0.0
+                logging.info(f"{worker_prefix}Indexing: {filename} (Progress: {completed}/{total} - {pct:.1f}%)")
+            else:
+                # Fallback
+                logging.info(f"{worker_prefix}Indexing: {filename}")
+                
             if not filename:
                 continue
                 
-            logging.info(f"{worker_prefix}Indexing: {filename}")
             index_single_file(parser, root_directory, filename, symbol_db)
             
             # Signal completion to master
