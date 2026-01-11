@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 
 import sys
+import os
+import logging
 import json
 import threading
-import logging
 import argparse
 import time
 from multiprocessing import Queue
 
-# Add 'lib' directory to sys.path BEFORE importing cxxd
-import sys
-import os
-
+# Setup Path to include 'lib'
 if __name__ == "__main__":
     current_dir = os.path.dirname(os.path.abspath(__file__))
     # lib/cxxd -> lib
