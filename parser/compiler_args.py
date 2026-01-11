@@ -127,8 +127,9 @@ class CompilerArgs():
                 s = filename.split('.')
                 if len(s) == 1:
                     return True # some headers don't have an extension, e.g. vector
-                if s[1].startswith('h'):
-                    return True # extension is some variation of .h, .hpp, .hxx, etc.
+                if s[1].startswith('h') or s[1] == 'i':
+                    # extension is some variation of .h, .hpp, .hxx, etc. OR .i (preprocessed/inline include)
+                    return True 
                 return False
 
             def extract_compiler_args(compile_cmd, is_header):
