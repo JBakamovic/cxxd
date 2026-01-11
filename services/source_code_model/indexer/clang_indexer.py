@@ -33,7 +33,7 @@ class ClangIndexer():
         ASTNodeId.getClassId(),           ASTNodeId.getStructId(),            ASTNodeId.getEnumId(),             ASTNodeId.getEnumValueId(), # handle user-defined types
         ASTNodeId.getUnionId(),           ASTNodeId.getTypedefId(),           ASTNodeId.getUsingDeclarationId(),
         ASTNodeId.getFunctionId(),        ASTNodeId.getMethodId(),                                                                           # handle functions and methods
-        ASTNodeId.getLocalVariableId(),   ASTNodeId.getFunctionParameterId(), ASTNodeId.getFieldId(),                                        # handle local/function variables and member variables
+        ASTNodeId.getFieldId(),                                                                                                              # handle member variables
         ASTNodeId.getMacroDefinitionId(), ASTNodeId.getMacroInstantiationId()                                                                # handle macros
     ]
 
