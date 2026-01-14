@@ -5,60 +5,67 @@ import tempfile
 import time
 import cxxd.service
 
-class ProjectBuilderRequestId(object):
-    TARGET_BUILD_CONFIG_CMD = 0x0
-    CUSTOM_CMD = 0x1
+class ProjectBuilderRequestId():
+    LIST_TARGETS             = 0x0
+    RUN_TARGET               = 0x1
 
 class ProjectBuilder(cxxd.service.Service):
-    def __init__(self, project_root_directory, cxxd_config_parser, target, service_plugin):
+    def __init__(self, project_root_directory, cxxd_config_parser, service_plugin):
         cxxd.service.Service.__init__(self, service_plugin)
         self.project_root_directory = project_root_directory
         self.cxxd_config_parser = cxxd_config_parser
-        self.build_args = self._stringify_project_builder_args(
-            self.cxxd_config_parser.get_project_builder_args()
-        )
-        self.build_dir = self.cxxd_config_parser.get_project_builder_build_dir(target)
-        self.build_cmd = self.cxxd_config_parser.get_project_builder_build_cmd(target)
-        self.build_cmd_output_file = tempfile.NamedTemporaryFile(suffix='_project_build_output')
         self.service = {
-            ProjectBuilderRequestId.TARGET_BUILD_CONFIG_CMD  : self._build_by_reading_target_config_cmd,
-            ProjectBuilderRequestId.CUSTOM_CMD               : self._build_by_using_on_air_provided_cmd,
+            ProjectBuilderRequestId.LIST_TARGETS             : self._list_targets,
+            ProjectBuilderRequestId.RUN_TARGET               : self._build_by_target_name,
         }
-        logging.info("Build command will be executed from \'{0}\' directory. Output will be recorded into \'{1}\'.".format(self.project_root_directory, self.build_cmd_output_file.name))
-
-    def _stringify_project_builder_args(self, args):
-        project_builder_args = ''
-        for arg, value in args:
-            if isinstance(value, bool):
-                if value:
-                    project_builder_args += arg + ' '
-            else:
-                project_builder_args += arg + '=' + value
-        return project_builder_args
+        logging.info("ProjectBuilder initialized for root: {0}".format(self.project_root_directory))
 
     def __unknown_service(self, args):
         logging.error("Unknown service triggered! Valid services are: {0}".format(self.service))
         return False, None
 
-    def _run_the_build(self, cmd):
-        start = time.process_time()
-        self.build_cmd_output_file.truncate(0)
-        build_exit_code = subprocess.call(cmd, shell=True, stdout=self.build_cmd_output_file, stderr=self.build_cmd_output_file)
-        end = time.process_time()
-        logging.info("Cmd '{0}' took {1}. Status = {2}".format(cmd, end-start, build_exit_code))
-        return True, [self.build_cmd_output_file.name, build_exit_code, end-start]
+    def _ensure_build_dir(self, directory):
+        full_path = os.path.join(self.project_root_directory, directory)
+        if not os.path.exists(full_path):
+             try:
+                 os.makedirs(full_path)
+             except OSError as e:
+                 logging.error(f"Failed to create build directory {full_path}: {e}")
+                 return None
+        return full_path
 
-    def _build_by_reading_target_config_cmd(self, args):
-        build_cmd = 'cd ' + os.path.join(self.project_root_directory, self.build_dir) + ' && ' + self.build_cmd
-        return self._run_the_build(build_cmd)
+    def _list_targets(self, args):
+        targets_dict = self.cxxd_config_parser.get_project_builder_targets()
+        formatted_targets = []
+        for name, details in targets_dict.items():
+            cmd = details.get('cmd', 'No command')
+            formatted_targets.append(f"{name} [{cmd}]")
+        logging.info(f"ProjectBuilder: Listing {len(formatted_targets)} targets.")
+        return True, formatted_targets
 
-    def _build_by_using_on_air_provided_cmd(self, args):
-        build_cmd = 'cd ' + os.path.join(self.project_root_directory, self.build_dir) + ' && ' + args[0] + ' ' + self.build_args
-        return self._run_the_build(build_cmd)
+    def _build_by_target_name(self, args):
+        if not args:
+            return False, "No target name provided"
+        
+        target_name = args[0]
+        logging.info(f"ProjectBuilder: Request to build target '{target_name}'")
+        
+        build_dir = self.cxxd_config_parser.get_project_builder_build_dir(target_name)
+        build_cmd_str = self.cxxd_config_parser.get_project_builder_build_cmd(target_name)
+        
+        if not build_dir or not build_cmd_str:
+             return False, f"Target '{target_name}' not found or invalid config."
+        
+        build_dir_path = self._ensure_build_dir(build_dir)
+        if not build_dir_path:
+             return False, f"Failed to create build directory for {target_name}"
+             
+        full_cmd = f"cd {build_dir_path} && {build_cmd_str}"
+        return True, [full_cmd]
 
     def startup_callback(self, args):
         logging.info('Project-builder service started.')
-        return True, [self.build_cmd_output_file.name]
+        return True, []
 
     def shutdown_callback(self, args):
         logging.info('Project-builder service stopped.')

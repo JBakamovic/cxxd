@@ -49,8 +49,6 @@ class CxxdConfigParserWithNonEmptyConfigFileAndCompilationDb(unittest.TestCase):
     def test_if_cxxd_config_parser_returns_non_empty_clang_format_arg_list(self):
         self.assertNotEqual(self.parser.get_clang_format_args(), [])
 
-    def test_if_cxxd_config_parser_returns_non_empty_project_builder_arg_list(self):
-        self.assertNotEqual(self.parser.get_project_builder_args(), [])
 
     def test_if_is_file_blacklisted_handles_files_from_blacklisted_dirs_correctly(self):
         directory_list = ['/tmp']
@@ -113,8 +111,6 @@ class CxxdConfigParserWithEmptyConfigFileTest(unittest.TestCase):
     def test_if_cxxd_config_parser_returns_empty_clang_format_arg_list(self):
         self.assertEqual(self.parser_with_empty_config_file.get_clang_format_args(), [])
 
-    def test_if_cxxd_config_parser_returns_empty_project_builder_arg_list(self):
-        self.assertEqual(self.parser_with_empty_config_file.get_project_builder_args(), [])
 
 
 class CxxdConfigParserWithCornerCaseConfigEntriesTest(unittest.TestCase):
@@ -479,8 +475,6 @@ class CxxdConfigParserWithNoConfigFileAndNoCompilationDbOrTxtCompileFlagsConfigT
     def test_if_cxxd_config_parser_returns_empty_clang_format_arg_list(self):
         self.assertEqual(self.parser.get_clang_format_args(), [])
 
-    def test_if_cxxd_config_parser_returns_empty_project_builder_arg_list(self):
-        self.assertEqual(self.parser.get_project_builder_args(), [])
 
 class CxxdConfigParserWithConfigFileButWithNoCompilationDbOrTxtCompileFlagsConfigTest(unittest.TestCase):
     @classmethod

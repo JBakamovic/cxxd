@@ -137,6 +137,9 @@ class CxxdConfigParser():
     def get_project_builder_build_dir(self, target):
         return self._extract_project_builder_build_dir(self.configuration_selected, target)
 
+    def get_project_builder_targets(self):
+        return self.project_builder_targets
+
     @staticmethod
     def is_file_blacklisted(directory_list, filename):
         for dir in directory_list:
