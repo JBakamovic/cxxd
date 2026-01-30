@@ -9,11 +9,13 @@ class CodeCompletion(cxxd.service.Service):
     def __init__(self, project_root_directory, cxxd_config_parser, target, service_plugin):
         cxxd.service.Service.__init__(self, service_plugin)
         self.configuration = cxxd_config_parser.get_configuration_for_target(target)
+        self.cxxd_config_parser = cxxd_config_parser
 
     def startup_callback(self, args):
         self.parser = cxxd.parser.clang_parser.ClangParser(
             self.configuration,
-            cxxd.parser.tunit_cache.TranslationUnitCache(cxxd.parser.tunit_cache.FifoCache(20))
+            cxxd.parser.tunit_cache.TranslationUnitCache(cxxd.parser.tunit_cache.FifoCache(20)),
+            self.cxxd_config_parser.get_clang_library_file(),
         )
         self.code_completion = CodeCompletionImpl(self.parser)
         logging.info('Code-completion service started.')

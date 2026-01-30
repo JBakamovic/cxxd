@@ -151,9 +151,10 @@ class Server():
             logging.info("Registered services: {0}".format(self.service))
             logging.info("Actions: {0}".format(self.action))
         else:
-            logging.fatal('Unable to find proper configuration for given target: {0}. Please check entries in your .cxxd_config.json.'.format(target))
+            error_msg = 'Unable to find proper configuration for given target: {0}. Please check entries in your .cxxd_config.json.'.format(target)
+            logging.fatal(error_msg)
             logging.fatal('Bailing out ...')
-            self.__shutdown_and_exit(0, [])
+            self.__shutdown_and_exit(0, [error_msg])
 
     def __start_all_services(self, dummyServiceId, dummyPayload):
         logging.info("Starting all registered services ... {0}".format(self.service))
@@ -201,6 +202,14 @@ class Server():
         return self.started_up
 
     def __shutdown_and_exit(self, dummyServiceId, payload):
+        # Check if we have an error message to report back before shutting down
+        if payload and isinstance(payload, list) and len(payload) > 0 and isinstance(payload[0], str):
+            try:
+                sys.stderr.write(payload[0] + "\n")
+                sys.stderr.flush()
+            except Exception as e:
+                logging.error(f"Failed to write shutdown notification to stderr: {e}")
+
         logging.info("Shutting down the server ...")
         self.__shutdown_all_services(dummyServiceId, payload)
         self.started_up = False

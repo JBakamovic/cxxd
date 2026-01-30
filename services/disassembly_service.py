@@ -78,7 +78,8 @@ class Disassembly(cxxd.service.Service):
         self.cxxd_config_parser = cxxd_config_parser
         self.parser = cxxd.parser.clang_parser.ClangParser(
             cxxd_config_parser.get_configuration_for_target(target),
-            cxxd.parser.tunit_cache.TranslationUnitCache(cxxd.parser.tunit_cache.FifoCache(20))
+            cxxd.parser.tunit_cache.TranslationUnitCache(cxxd.parser.tunit_cache.FifoCache(20)),
+            cxxd_config_parser.get_clang_library_file(),
         )
         self.amd64_asm_json = os.path.join(os.path.abspath(os.path.dirname(__file__)), '../asm/asm-docs-amd64.json')
         self.build_dir = cxxd_config_parser.get_project_builder_build_dir(target)
