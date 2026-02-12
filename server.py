@@ -22,6 +22,7 @@ class ServerRequestId():
     START_ALL_SERVICES    = 0xF0
     START_SERVICE         = 0xF1
     SEND_SERVICE          = 0xF2
+    SET_LOG_LEVEL         = 0xFC
     SHUTDOWN_ALL_SERVICES = 0xFD
     SHUTDOWN_SERVICE      = 0xFE
     SHUTDOWN_AND_EXIT     = 0xFF
@@ -69,6 +70,11 @@ class Server():
             else:
                 logging.warning("Service process must be started before issuing any kind of requests!")
 
+        def set_log_level(self, payload):
+            if self.is_started():
+                self.service.send_set_log_level(payload)
+            # No warning here as it's a broadcast
+
     def __init__(self, handle, project_root_directory, target, source_code_model_plugin, project_builder_plugin, clang_format_plugin, clang_tidy_plugin, code_completion_plugin, disassembly_plugin):
         self.handle = handle
         self.cxxd_config_filename = '.cxxd_config.json'
@@ -77,10 +83,10 @@ class Server():
             ServerRequestId.START_ALL_SERVICES    : self.__start_all_services,
             ServerRequestId.START_SERVICE         : self.__start_service,
             ServerRequestId.SEND_SERVICE          : self.__send_service_request,
+            ServerRequestId.SET_LOG_LEVEL         : self.__set_log_level,
             ServerRequestId.SHUTDOWN_ALL_SERVICES : self.__shutdown_all_services,
             ServerRequestId.SHUTDOWN_SERVICE      : self.__shutdown_service,
-            ServerRequestId.SHUTDOWN_AND_EXIT     : self.__shutdown_and_exit
-            # TODO add runtime debugging switch action
+            ServerRequestId.SHUTDOWN_AND_EXIT     : self.__shutdown_and_exit,
         }
         self.service = {}
         self.started_up = True
@@ -161,6 +167,25 @@ class Server():
             svc_handler.request(payload)
         else:
             logging.error("Sending a request to the service not possible. No service found under id={0}.".format(serviceId))
+        return self.started_up
+
+    def __set_log_level(self, dummyServiceId, payload):
+        # payload is expected to be a string like "DEBUG", "INFO" - e.g. what python logging library expects
+        level_name = str(payload).strip().upper()
+        level = getattr(logging, level_name, None)
+        if not isinstance(level, int):
+             logging.error(f"Invalid log level requested: {level_name}")
+             return self.started_up
+
+        # Set root logger level for the Server process
+        logging.getLogger().setLevel(level)
+        logging.info(f"Log level dynamically changed to {level_name}")
+
+        # Broadcast to all started services
+        for svc_handler in self.service.values():
+            if svc_handler.is_started():
+                svc_handler.set_log_level(level_name)
+
         return self.started_up
 
     def __unknown_action(self, serviceId, payload):

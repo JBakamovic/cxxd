@@ -11,7 +11,8 @@ class Service():
         self.action = {
             0x0 : self.__startup_request,
             0x1 : self.__shutdown_request,
-            0x2 : self.__request
+            0x2 : self.__request,
+            0x3 : self.__set_log_level
         }
         self.started_up = False
         logging.info("Actions: {0}".format(self.action))
@@ -34,6 +35,17 @@ class Service():
             self.started_up = not status
         else:
             logging.warning('Service must be started before issuing any other kind of requests!')
+        return self.started_up
+
+    def __set_log_level(self, payload):
+        # payload is expected to be a string like "DEBUG", "INFO" - e.g. what python logging library expects
+        level_name = str(payload).strip().upper()
+        level = getattr(logging, level_name, None)
+        if isinstance(level, int):
+            logging.getLogger().setLevel(level)
+            logging.info(f"Service log level changed to {level_name}")
+        else:
+            logging.error(f"Invalid log level: {level_name}")
         return self.started_up
 
     def __request(self, payload):
@@ -75,6 +87,9 @@ class Service():
 
     def send_request(self, payload):
         self.queue.put([0x2, payload])
+
+    def send_set_log_level(self, payload):
+        self.queue.put([0x3, payload])
 
     def is_started_up(self):
         return self.started_up
