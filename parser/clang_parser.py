@@ -85,7 +85,7 @@ class ClangParser():
                  ClangParser._libclang_configured = True
         else:
             ClangParser.try_configure_libclang()
-            
+
         self.index         = clang.cindex.Index.create()
         self.compiler_args = CompilerArgs(compiler_args_filename)
         self.tunit_cache   = tunit_cache
@@ -125,7 +125,7 @@ class ClangParser():
             "/usr/lib64/libclang-[0-9]*.so*",
             "/usr/lib64/llvm/lib/libclang.so", # Sometimes here?
         ]
-        
+
         candidate = None
         for pattern in search_paths:
             # Sort reverse to pick higher versions (e.g. 20 over 14) usually
@@ -137,7 +137,7 @@ class ClangParser():
                  break
             if candidate:
                 break
-                
+
         if candidate:
             try:
                 clang.cindex.Config.set_library_file(candidate)
@@ -325,11 +325,20 @@ class ClangParser():
             if cursor.referenced:
                 if (cursor.referenced.kind == clang.cindex.CursorKind.OVERLOADED_DECL_REF):
                     if (ClangParser.__get_num_overloaded_decls(cursor.referenced)):
-                        return ClangParser.to_ast_node_id(ClangParser.__get_overloaded_decl(cursor.referenced, 0).kind)
-                return ClangParser.to_ast_node_id(cursor.referenced.kind)
+                        check_id = ClangParser.to_ast_node_id(ClangParser.__get_overloaded_decl(cursor.referenced, 0).kind)
+                        if check_id != ASTNodeId.getUnsupportedId():
+                            return check_id
+
+                ref_id = ClangParser.to_ast_node_id(cursor.referenced.kind)
+                if ref_id != ASTNodeId.getUnsupportedId():
+                    return ref_id
+
             if (cursor.kind == clang.cindex.CursorKind.OVERLOADED_DECL_REF):
                 if (ClangParser.__get_num_overloaded_decls(cursor)):
-                    return ClangParser.to_ast_node_id(ClangParser.__get_overloaded_decl(cursor, 0).kind)
+                    check_id = ClangParser.to_ast_node_id(ClangParser.__get_overloaded_decl(cursor, 0).kind)
+                    if check_id != ASTNodeId.getUnsupportedId():
+                        return check_id
+
         return ClangParser.to_ast_node_id(cursor.kind)
 
     def get_ast_node_name(self, cursor):
@@ -555,7 +564,7 @@ class ClangParser():
             return ASTNodeId.getMacroDefinitionId()
         if (kind == clang.cindex.CursorKind.MACRO_INSTANTIATION):
             return ASTNodeId.getMacroInstantiationId()
-        if (kind in [clang.cindex.CursorKind.TYPEDEF_DECL, clang.cindex.CursorKind.TYPE_ALIAS_DECL]):
+        if (kind in [clang.cindex.CursorKind.TYPEDEF_DECL, clang.cindex.CursorKind.TYPE_ALIAS_DECL, clang.cindex.CursorKind.TYPE_ALIAS_TEMPLATE_DECL]):
             return ASTNodeId.getTypedefId()
         if (kind == clang.cindex.CursorKind.NAMESPACE_ALIAS):
             return ASTNodeId.getNamespaceAliasId()
@@ -563,6 +572,11 @@ class ClangParser():
             return ASTNodeId.getUsingDirectiveId()
         if (kind == clang.cindex.CursorKind.USING_DECLARATION):
             return ASTNodeId.getUsingDeclarationId()
+        if (kind == clang.cindex.CursorKind.TEMPLATE_REF):
+            return ASTNodeId.getClassId()
+        if (kind == clang.cindex.CursorKind.OVERLOADED_DECL_REF):
+            return ASTNodeId.getFunctionId()
+            
         return ASTNodeId.getUnsupportedId()
 
     # TODO Shall be removed once 'cindex.py' exposes it in its interface.
