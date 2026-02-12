@@ -33,11 +33,16 @@ def semantic_syntax_highlight_visitor(ast_node, ast_parent_node, data):
                     client_data
                 )
             else:
-                logging.debug("Unsupported token id: [{0}, {1}]: {2} '{3}'".format(
-                        ast_node.location.line, ast_node.location.column,
-                        ast_node.kind, ast_node.spelling
+                extra_highlights = parser.get_dependent_token_highlights(ast_node)
+                if extra_highlights:
+                    for extra_id, extra_name, extra_line, extra_col in extra_highlights:
+                         client_callback(extra_id, extra_name, extra_line, extra_col, client_data)
+                else:
+                    logging.debug("Unsupported token id: [{0}, {1}]: {2} '{3}'".format(
+                            ast_node.location.line, ast_node.location.column,
+                            ast_node.kind, ast_node.spelling
+                        )
                     )
-                )
         elif ast_node_line > line_end:
             return ChildVisitResult.BREAK.value # It means we're done and we don't need to waste any more time traversing till the end of TU
         else:

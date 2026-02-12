@@ -341,6 +341,36 @@ class ClangParser():
 
         return ClangParser.to_ast_node_id(cursor.kind)
 
+    def get_dependent_token_highlights(self, cursor):
+        highlights = []
+
+        # Logic to handle 'dependent' expressions where some parts (e.g. static member access '::value')
+        # are not exposed as separate AST nodes but only as part of a larger DECL_REF_EXPR.
+        if cursor.kind == clang.cindex.CursorKind.DECL_REF_EXPR and cursor.type.kind == clang.cindex.TypeKind.DEPENDENT:
+            children = list(cursor.get_children())
+            tokens = list(cursor.get_tokens())
+
+            for token in tokens:
+                if token.kind == clang.cindex.TokenKind.IDENTIFIER:
+                    # Check coverage by children
+                    covered = False
+                    for child in children:
+                         # Simple extent check. Note: We use offsets for reliability.
+                        if (child.extent.start.offset <= token.extent.start.offset) and (child.extent.end.offset >= token.extent.end.offset):
+                            covered = True
+                            break
+
+                    if not covered:
+                         # Default to 'class_struct_union_field' for dependent members as it's the safest bet for static members/fields.
+                         highlights.append((
+                             ASTNodeId.getFieldId(),
+                             token.spelling,
+                             token.location.line,
+                             token.location.column
+                         ))
+
+        return highlights
+
     def get_ast_node_name(self, cursor):
         if cursor.type.kind == clang.cindex.TypeKind.DEPENDENT:
             return ClangParser.__extract_dependent_type_spelling(cursor)
