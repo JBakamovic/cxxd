@@ -9,7 +9,9 @@ from . services.disassembly_service import DisassemblyRequestId
 #
 # Server API
 #
-def server_start(get_server_instance, get_server_instance_args, project_root_directory, target_configuration, log_file):
+def server_start_deprecated(get_server_instance, get_server_instance_args, project_root_directory, target_configuration, log_file):
+    # We now start the server fully decoupled from the frontend. See main.py
+
     import logging
     import multiprocessing
     import sys
@@ -70,6 +72,9 @@ def server_start(get_server_instance, get_server_instance_args, project_root_dir
 def server_stop(handle, *payload):
     handle.put([ServerRequestId.SHUTDOWN_AND_EXIT, 0x0, list(payload)])
 
+#
+# Services API
+#
 def server_start_all_services(handle, *payload):
     # TODO For this interface to be fully functional, server::_start_all_services
     #      implementation has to be upgraded to support passing service-specific
