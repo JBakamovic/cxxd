@@ -281,12 +281,40 @@ class ClangParser():
         logging.info("Fetching diagnostics for {0}: {1}".format(tunit.spelling, diag))
         return diag
 
+    def resolve_bazel_relative_filenames(self, tunit_filename, filename):
+        if not filename or filename == "None" or os.path.isabs(filename):
+            return filename
+        workdir = self.compiler_args.working_directory(tunit_filename)
+        resolved = filename
+        if workdir:
+             resolved = os.path.normpath(os.path.join(workdir, filename))
+        logging.debug("Included file resolved from {} to {} using workdir {}".format(filename, resolved, workdir))
+        return resolved
+
+    def resolve_bazel_symlinks(self, included_filename):
+        resolved = included_filename
+        if os.path.islink(included_filename):
+            # Sometimes we resolve a header file which is actually a symlink. This is
+            # what bazel is at least doing with its virtual_includes. We transform such
+            # symlinks into an actual absolute filepaths since this can easily bite us.
+            # Although symlink in POSIX is basically a pointer to a file, and therefore
+            # modifications done through a symlink should be immeditelly visible in an
+            # actual file, there's no guarantee that this will not interfere with the
+            # frontend (editor) caching mechanisms, e.g. backup or swap files, and its
+            # text buffering. Because of this we might very well end up with partial
+            # updates to a file which we absolutely want to avoid. Hence this transformation.
+            resolved = os.path.abspath(os.path.join(os.path.dirname(included_filename), os.readlink(included_filename)))
+        logging.debug("Included file resolved from {} to {}".format(resolved, included_filename))
+        return resolved
+
     def get_top_level_includes(self, tunit):
         def visitor(cursor, parent, include_directives_list):
             if cursor.location.file and cursor.location.file.name == tunit.spelling:  # we're only interested in symbols from associated translation unit
                 if cursor.kind == clang.cindex.CursorKind.INCLUSION_DIRECTIVE:
                     included_file_name = ClangParser.__get_included_file_name(cursor)
                     if included_file_name:
+                        included_file_name = self.resolve_bazel_relative_filenames(tunit.spelling, included_file_name)
+                        included_file_name = self.resolve_bazel_symlinks(included_file_name)
                         include_directives_list.append((included_file_name, cursor.location.line, cursor.location.column),)
                 return ChildVisitResult.CONTINUE.value  # We don't want to waste time traversing recursively for include directives
             return ChildVisitResult.CONTINUE.value
@@ -692,13 +720,19 @@ class ClangParser():
         _libclang.clang_getFileName.argtypes     = [clang.cindex.c_object_p]
         _libclang.clang_getFileName.restype      =  clang.cindex._CXString
 
-        res = clang.cindex.conf.lib.clang_getCString(
-            _libclang.clang_getFileName(
-                _libclang.clang_getIncludedFile(
-                    inclusion_directive_cursor
-                )
-            )
-        )
+        inc_file = _libclang.clang_getIncludedFile(inclusion_directive_cursor)
+        if not inc_file:
+            # This can happen if the file is not found or libclang failed to resolve it
+            logging.debug(f"__get_included_file_name: clang_getIncludedFile returned NULL for cursor '{inclusion_directive_cursor.spelling}' at {inclusion_directive_cursor.location.line}:{inclusion_directive_cursor.location.column}")
+            return "None"
+
+        cx_string = _libclang.clang_getFileName(inc_file)
+        res = clang.cindex.conf.lib.clang_getCString(cx_string)
+
+        if res is None:
+             logging.debug(f"__get_included_file_name: clang_getFileName returned NULL for cursor '{inclusion_directive_cursor.spelling}'")
+             return "None"
+
         if hasattr(res, 'decode'):
             return res.decode('utf-8', 'ignore')
         return str(res)

@@ -46,16 +46,16 @@ class ProjectBuilder(cxxd.service.Service):
     def _build_by_target_name(self, args):
         if not args:
             return False, "No target name provided"
-        
+
         target_name = args[0]
         logging.info(f"ProjectBuilder: Request to build target '{target_name}'")
-        
+
         build_dir = self.cxxd_config_parser.get_project_builder_build_dir(target_name)
         build_cmd_str = self.cxxd_config_parser.get_project_builder_build_cmd(target_name)
-        
+
         if not build_dir or not build_cmd_str:
              return False, f"Target '{target_name}' not found or invalid config."
-        
+
         build_dir_path = self._ensure_build_dir(build_dir)
         if not build_dir_path:
              return False, f"Failed to create build directory for {target_name}"

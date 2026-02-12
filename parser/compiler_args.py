@@ -105,6 +105,25 @@ class CompilerArgs():
 
                 return [arg for arg in json_comp_db_command if not is_match(arg)]
 
+            def eat_unsupported_flags_and_transform_relative_into_absolute_paths(json_comp_db_command, working_directory):
+                # Even though compile_commands.json documentation says that paths used in (compiler) arguments
+                # can be relative, it seems like it doesn't work in practice so we have to transform all of such
+                # paths.
+                logging.debug('compile cmd before: {}'.format(json_comp_db_command))
+                for idx in range(len(json_comp_db_command)):
+                    if json_comp_db_command[idx] in ['-I', '-iquote', '-isystem']:
+                        json_comp_db_command[idx+1] = os.path.join(working_directory, json_comp_db_command[idx+1])
+                    elif json_comp_db_command[idx].startswith('-Ibazel'):
+                        json_comp_db_command[idx] = '-I' + os.path.join(working_directory, json_comp_db_command[idx][2:])
+                    elif json_comp_db_command[idx].startswith('bazel-out'):
+                        json_comp_db_command[idx] = os.path.join(working_directory, json_comp_db_command[idx])
+                    elif json_comp_db_command[idx].startswith('--sysroot=external'):
+                        json_comp_db_command[idx] = '--sysroot=' + os.path.join(working_directory, json_comp_db_command[idx][10:])
+                    elif json_comp_db_command[idx] in ['-fno-canonical-system-headers', '-Wformat-truncation', '-Wformat-truncation=1', '-Wformat-truncation=2']:
+                        json_comp_db_command[idx] = ''
+                logging.debug('compile cmd after: {}'.format(json_comp_db_command))
+                return json_comp_db_command
+
             def cache_compiler_args(args_list):
                 # JSON compilation database ('compile_commands.json'):
                 #   1. Will include information about translation units only (.cxx)
@@ -132,16 +151,30 @@ class CompilerArgs():
             def extract_compiler_args(compile_cmd, is_header):
                 args = []
                 if compile_cmd:
+                    try:
+                        cmd = compile_cmd[0]
+                    except Exception as e:
+                         logging.debug(f"CompilerArgs: Failed to inspect cmd: {e}")
+
                     for arg in compile_cmd[0].arguments:
                         args.append(arg)
+
+                    try:
+                         # Propagate working directory if available.
+                         # This is critical for build systems like Bazel where includes are relative to execution root.
+                         if compile_cmd[0].directory:
+                             args.append('-working-directory')
+                             args.append(compile_cmd[0].directory)
+                    except Exception:
+                         pass
                     # Since some version of libclang, handling for files not part of the compilation database
                     # (e.g. headers and TUs not yet part of the build system) has been changed and now we have
                     # to special-case it here with eat_minus_minus_path_to_file. Furthermore, headers need more
                     # special care because compiler flag options are not the same as for the TUs.
                     if is_header:
-                        args = self.default_compiler_args + eat_conflicting_language_args(eat_compiler_invocation(eat_minus_minus_path_to_file(eat_minus_o_compiler_option(eat_minus_c_compiler_option(args)))))
+                        args = self.default_compiler_args + eat_unsupported_flags_and_transform_relative_into_absolute_paths(eat_conflicting_language_args(eat_compiler_invocation(eat_minus_minus_path_to_file(eat_minus_o_compiler_option(eat_minus_c_compiler_option(args))))), compile_cmd[0].directory)
                     else:
-                        args = self.default_compiler_args + eat_conflicting_language_args(eat_compiler_invocation(eat_minus_minus_path_to_file(eat_minus_o_compiler_option(eat_minus_c_compiler_option(args)))))
+                        args = self.default_compiler_args + eat_unsupported_flags_and_transform_relative_into_absolute_paths(eat_conflicting_language_args(eat_compiler_invocation(eat_minus_minus_path_to_file(eat_minus_o_compiler_option(eat_minus_c_compiler_option(args))))), compile_cmd[0].directory)
                     # Finally, remove the input filename itself if it appears in args
                     # For headers, the filename in args might be the TU that included it (if we borrowed args), or the header itself.
                     # For TUs, it's the TU itself.
@@ -164,13 +197,23 @@ class CompilerArgs():
             logging.debug(compiler_args)
             return compiler_args
 
+        def get_working_dir(self, filename):
+            compile_cmd = self.database.getCompileCommands(filename)
+            if compile_cmd and compile_cmd[0].directory:
+                return compile_cmd[0].directory
+            return ""
+
     class CompileFlagsCompilationDatabase():
         def __init__(self, default_compiler_args, filename):
-            self.root_project_directory = ['-working-directory=' + os.path.dirname(filename)] # TODO this assumes that compile_flags.txt is in the root project directory
+            self.working_directory = os.path.dirname(filename)
+            self.root_project_directory = ['-working-directory=' + self.working_directory] # TODO this assumes that compile_flags.txt is in the root project directory
             self.compiler_args = self.root_project_directory + default_compiler_args + [line.rstrip('\n') for line in open(filename)]
 
         def get(self, filename):
             return self.compiler_args
+
+        def get_working_dir(self, filename):
+            return self.working_directory
 
     class FallbackCompilationDatabase():
         def __init__(self, default_compiler_args):
@@ -178,6 +221,9 @@ class CompilerArgs():
 
         def get(self, filename):
             return self.default_compiler_args
+
+        def get_working_dir(self, filename):
+            return None # Not supported
 
     def __init__(self, compiler_args_filename):
         self.database = None
@@ -188,6 +234,9 @@ class CompilerArgs():
 
     def filename(self):
         return self.database_filename
+
+    def working_directory(self, source_code_filename):
+        return self.database.get_working_dir(source_code_filename)
 
     def set(self, compiler_args_filename):
         self.database_filename = compiler_args_filename
