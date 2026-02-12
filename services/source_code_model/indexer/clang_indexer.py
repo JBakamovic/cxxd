@@ -26,6 +26,7 @@ class SourceCodeModelIndexerRequestId():
     DROP_ALL                  = 0x3
     FIND_ALL_REFERENCES       = 0x10
     FETCH_ALL_DIAGNOSTICS     = 0x11
+    FETCH_ALL_DEFINITIONS     = 0x12
 
 class ClangIndexer():
     supported_ast_node_ids = [
@@ -50,6 +51,7 @@ class ClangIndexer():
             SourceCodeModelIndexerRequestId.DROP_ALL              : self.__drop_all,
             SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES   : self.__find_all_references,
             SourceCodeModelIndexerRequestId.FETCH_ALL_DIAGNOSTICS : self.__fetch_all_diagnostics,
+            SourceCodeModelIndexerRequestId.FETCH_ALL_DEFINITIONS : self.__fetch_all_definitions,
         }
         self.recognized_file_extensions = ['.cpp', '.cc', '.cxx', '.c', '.h', '.hh', '.hpp', 'hxx']
         self.extra_file_extensions = self.cxxd_config_parser.get_extra_file_extensions()
@@ -259,6 +261,35 @@ class ClangIndexer():
             logging.error('Action cannot be run if symbol database does not exist yet!')
         return db_exists, diagnostics
 
+    def __fetch_all_definitions(self, id, args):
+        # Determine output file path
+        if args and len(args) > 0:
+            output_file_path = args[0]
+        else:
+            fd, output_file_path = tempfile.mkstemp(prefix='cxxd_definitions_', suffix='.txt', text=True)
+            os.close(fd)
+
+        db_exists = self.symbol_db_exists()
+        if db_exists:
+            self.symbol_db.open(self.symbol_db_path)
+            try:
+                count = 0
+                # 128KB - buffer writes to minimize syscalls - nr. of symbols will be potentially large
+                with open(output_file_path, 'w', buffering=128*1024) as f:
+                    for relative_filename, line, column, context in self.symbol_db.fetch_all_definitions_raw():
+                        # In the DB, 'filename' is relative. Construct absolute.
+                        abs_filename = os.path.join(self.root_directory, relative_filename)
+                        text = context.strip() if context else ''
+                        f.write(f"{text}\t{abs_filename}:{line}:{column}\n")
+                        count += 1
+                logging.info(f"__fetch_all_definitions streamed {count} definitions to {output_file_path}")
+                return True, [output_file_path] 
+            except Exception as e:
+                logging.error(f"Error streaming definitions: {e}")
+                return False, None
+        else:
+            logging.error('Action cannot be run if symbol database does not exist yet!')
+        return db_exists, None
 
 def index_file_list(root_directory, input_filename_list, compiler_args_filename, output_db_filename):
     symbol_db = SymbolDatabase(output_db_filename)
