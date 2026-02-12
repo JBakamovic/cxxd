@@ -2,6 +2,7 @@ import clang.cindex
 import logging
 import os
 import sys
+import time
 from cxxd.parser.ast_node_identifier import ASTNodeId
 from cxxd.parser.compiler_args import CompilerArgs
 
@@ -35,7 +36,7 @@ def traverse(cursor, client_data, client_visitor = default_visitor):
         child._tu = cursor._tu
         child.ast_parent = parent
         return client_visitor(child, parent, client_data)
-        
+
     # Standard libclang visitor callback signature:
     # int (*)(CXCursor, CXCursor, CXClientData)
     # Using py_object for client_data allows passing arbitrary python objects.
@@ -45,7 +46,7 @@ def traverse(cursor, client_data, client_visitor = default_visitor):
         clang.cindex.Cursor, 
         py_object
     )
-    
+
     visitor_callback = visitor_callback_type(visitor)
 
     return clang.cindex.conf.lib.clang_visitChildren(cursor, visitor_callback, client_data)
@@ -174,13 +175,17 @@ class ClangParser():
                 # Now, trigger the code-complete on given TUnit ...
                 self.tunit_cache.insert(filename, tunit, build_flags, os.path.getmtime(filename))
                 with open(filename) as f:
+                    file_content = f.read()
+                    unsaved_files = [(filename, file_content),]
+                    # Warmup the reparse path too, as it can be expensive (e.g. 2.7s) on first run
+                    tunit.reparse(unsaved_files)
                     completion_results = tunit.codeComplete(
                         tunit.spelling,
                         line,
                         column + 1,
                         include_macros=complete_macros,
                         include_code_patterns=complete_lang_constructs,
-                        unsaved_files=[(filename, f.read()),]
+                        unsaved_files=unsaved_files
                     )
             else:
                 logging.error('Unable to parse TUnit!')
@@ -190,6 +195,8 @@ class ClangParser():
         # Check if TUnit is already cached. If not, we have to parse it first ...
         tunit, tunit_build_flags, tunit_timestamp = self.tunit_cache.fetch(original_filename)
         if tunit is None:
+            logging.debug("PERF: TUnit cache miss")
+            t0 = time.time()
             build_flags = self.compiler_args.get(original_filename)
             tunit = self.__do_parse(
                 contents_filename,
@@ -197,21 +204,30 @@ class ClangParser():
                 build_flags,
                 opts
             )
+            logging.debug(f"PERF: Parsing took {time.time() - t0:.4f}s")
+
             if tunit:
                 self.tunit_cache.insert(original_filename, tunit, build_flags, os.path.getmtime(original_filename))
             else:
                 logging.error('Unable to parse TUnit!')
+        else:
+            logging.debug("PERF: TUnit cache hit")
 
         # Now, trigger the code-complete on given TUnit ...
         with open(contents_filename) as f:
-            return tunit.codeComplete(
+            file_content = f.read()
+            unsaved_files = [(original_filename, file_content),]
+            t0 = time.time()
+            res = tunit.codeComplete(
                 tunit.spelling,
                 line,
                 column + 1,
                 include_macros=complete_macros,
                 include_code_patterns=complete_lang_constructs,
-                unsaved_files=[(original_filename, f.read()),]
+                unsaved_files=unsaved_files
             )
+            logging.debug(f"PERF: libclang codeComplete took {time.time() - t0:.4f}s")
+            return res
 
     def sort_code_completion_results(self, code_completion_candidates):
         _libclang = clang.cindex.conf.get_cindex_library()
