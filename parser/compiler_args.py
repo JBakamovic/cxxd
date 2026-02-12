@@ -62,7 +62,7 @@ class CompilerArgs():
                 except ValueError:
                     pass
                 return json_comp_db_command
-            
+
             def eat_conflicting_language_args(json_comp_db_command):
                 # We force '-x c++' at the beginning, so we must remove conflicting language specifications
                 # that might appear later in the command line (e.g. 'c++-header' or 'c++' dangling from a stripped -x)
@@ -82,6 +82,28 @@ class CompilerArgs():
                         continue
                     new_args.append(arg)
                 return new_args
+
+            def eat_conflicting_input_file(json_comp_db_command, filename):
+                # If the source filename itself is present in the arguments (e.g. gcc file.c ...),
+                # libclang will be confused because we pass the filename separately to parse().
+                # We need to remove it from the args list. We check for exact match or basename match or abspath match.
+                abs_filename = os.path.abspath(filename)
+                basename = os.path.basename(filename)
+
+                def is_match(arg):
+                    arg_str = str(arg)
+                    if arg_str == filename or arg_str == basename:
+                        return True
+                    # If arg looks like a path and resolves to same file
+                    if '/' in arg_str or '\\' in arg_str:
+                         try:
+                             if os.path.abspath(arg_str) == abs_filename:
+                                 return True
+                         except:
+                             pass
+                    return False
+
+                return [arg for arg in json_comp_db_command if not is_match(arg)]
 
             def cache_compiler_args(args_list):
                 # JSON compilation database ('compile_commands.json'):
@@ -119,6 +141,11 @@ class CompilerArgs():
                         args = self.default_compiler_args + eat_conflicting_language_args(eat_compiler_invocation(eat_minus_minus_path_to_file(eat_minus_o_compiler_option(eat_minus_c_compiler_option(args)))))
                     else:
                         args = self.default_compiler_args + eat_conflicting_language_args(eat_compiler_invocation(eat_minus_minus_path_to_file(eat_minus_o_compiler_option(eat_minus_c_compiler_option(args)))))
+                    # Finally, remove the input filename itself if it appears in args
+                    # For headers, the filename in args might be the TU that included it (if we borrowed args), or the header itself.
+                    # For TUs, it's the TU itself.
+                    # We pass 'filename' assuming it matches what's in the args (which comes from compile_commands.json entry)
+                    args = eat_conflicting_input_file(args, compile_cmd[0].filename if compile_cmd else filename)
                 return list(args)
 
             compiler_args = extract_compiler_args(self.database.getCompileCommands(filename), is_header_file(filename))
