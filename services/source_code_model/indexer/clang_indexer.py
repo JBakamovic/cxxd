@@ -3,8 +3,10 @@ import logging
 import math
 import multiprocessing
 import os
+import select
 import shlex
 import subprocess
+import sys
 import time
 import tempfile
 from cxxd.parser.cxxd_config_parser import CxxdConfigParser
@@ -33,7 +35,7 @@ class ClangIndexer():
         ASTNodeId.getClassId(),           ASTNodeId.getStructId(),            ASTNodeId.getEnumId(),             ASTNodeId.getEnumValueId(), # handle user-defined types
         ASTNodeId.getUnionId(),           ASTNodeId.getTypedefId(),           ASTNodeId.getUsingDeclarationId(),
         ASTNodeId.getFunctionId(),        ASTNodeId.getMethodId(),                                                                           # handle functions and methods
-        ASTNodeId.getLocalVariableId(),   ASTNodeId.getFunctionParameterId(), ASTNodeId.getFieldId(),                                        # handle local/function variables and member variables
+        ASTNodeId.getFieldId(),                                                                                                              # handle member variables
         ASTNodeId.getMacroDefinitionId(), ASTNodeId.getMacroInstantiationId()                                                                # handle macros
     ]
 
@@ -115,65 +117,145 @@ class ClangIndexer():
             # Build-up a list of source code files from given project directory
             cpp_file_list = get_cpp_file_list(self.root_directory, self.blacklisted_directories, self.recognized_file_extensions + self.extra_file_extensions)
 
-            indexing_subprocess_list = []
+            # Load Balancing: Dynamic Work Stealing Scheduler
+            num_cores = multiprocessing.cpu_count()
+            logging.info(f"Starting Dynamic Load Balancing with {num_cores} workers for {len(cpp_file_list)} files.")
+
+            # Start N interactive workers
+            workers = []
             symbol_db_list = []
-            indexer_input_list = []
 
-            # We will slice the input file list into a number of chunks which corresponds to the amount of available CPU cores
-            how_many_chunks = math.ceil(len(cpp_file_list) / multiprocessing.cpu_count())
-
-            # Now we are able to parallelize the indexing operation across different CPU cores
-            for cpp_file_list_chunk in slice_it(cpp_file_list, how_many_chunks):
-
-                # Each subprocess will get a file containing source files to be indexed
-                indexer_input_handle, indexer_input = create_indexer_input_list_file(self.root_directory, '.cxxd_idx_input', cpp_file_list_chunk)
-                os.fsync(indexer_input_handle)
-                os.close(indexer_input_handle)
-
-                # Each subprocess will get an empty DB file to record indexing results into it
+            for worker_id in range(num_cores):
+                # Create per-worker DB
                 symbol_db_handle, symbol_db = create_empty_symbol_db(self.root_directory, self.symbol_db_name)
-                os.fsync(symbol_db_handle)
                 os.close(symbol_db_handle)
+                symbol_db_list.append(symbol_db)
 
-                # Start indexing a given chunk in a new subprocess
-                #   Note: Running and handling subprocesses as following, and not via multiprocessing.Process module,
-                #         is done intentionally and more or less it served as a (very ugly) workaround because of several reasons:
-                #           (1) 'libclang' is not made thread safe which is why we want to utilize it from different
-                #               processes (e.g. each process will get its own instance of 'libclang')
-                #           (2) Python bindings for 'libclang' implement some sort of module caching mechanism which basically
-                #               contradicts with the intent from (1)
-                #           (3) Point (2) seems to be a Pythonic way of implementing modules which basically obscures
-                #               the way how different instances of libraries (modules?) across different processes
-                #               should behave
-                #           (4) Python does have a way to handle such situations (module reloading) but seems that it
-                #               works only for the simplest cases which is unfortunally not the case here
-                #           (5) Creating a new process via subprocess.Popen interface and running the indexing operation
-                #               from another Python script ('clang_index.py') is the only way how I managed to get it
-                #               working correctly (each process will get their own instance of library)
-                indexing_subprocess = start_indexing_subprocess(
+                # Start worker
+                proc = start_indexing_subprocess(
                     self.root_directory,
                     self.parser.get_compiler_args_db().filename(),
-                    indexer_input,
                     symbol_db,
-                    logging.getLoggerClass().root.handlers[0].baseFilename + '_' + str(len(indexing_subprocess_list)+1)
+                    logging.getLoggerClass().root.handlers[0].baseFilename,
+                    worker_id + 1
                 )
+                workers.append(proc)
 
-                # Store handles to subprocesses and corresponding tmp files so we can handle them later on
-                indexing_subprocess_list.append(indexing_subprocess)
-                symbol_db_list.append(symbol_db)
-                indexer_input_list.append(indexer_input)
+            # Scheduler State
+            # Optimization: Sort files by size (descending) so largest files are processed first.
+            logging.info("Sorting files by size to optimize schedule...")
+            cpp_file_list.sort(key=lambda f: os.path.getsize(f) if os.path.exists(f) else 0, reverse=True)
 
-            # Wait indexing subprocesses to finish with their work
-            for indexing_subprocess in indexing_subprocess_list:
-                indexing_subprocess.wait()
+            pending_files = list(cpp_file_list) # Copy list
+            active_workers = list(workers)      # Workers currently running
+            idle_workers = list(workers)        # Workers ready for work
 
+            # Debug: Track what each worker is doing
+            worker_state = {} # worker_proc -> {'file': str, 'start_time': float}
+            completed_files = 0
+
+            # Helper to send work
+            def send_work(worker, filename):
+                try:
+                    # Write bytes to unbuffered stdin
+                    worker.stdin.write((filename + "\n").encode('utf-8'))
+                    worker.stdin.flush()
+                    worker_state[worker] = {'file': filename, 'start_time': time.time()}
+                    logging.debug(f"Master: Sent {filename} to Worker {worker.args}")
+                    return True
+                except (BrokenPipeError, IOError):
+                    logging.error(f"Worker {worker.args} died unexpectedly.")
+                    if worker in worker_state:
+                         del worker_state[worker]
+                    return False
+
+            # Initial Fill: Give one file to each worker
+            while idle_workers and pending_files:
+                worker = idle_workers.pop(0)
+                file_to_process = pending_files.pop(0)
+                if not send_work(worker, file_to_process):
+                    active_workers.remove(worker)
+
+            # Event Loop
+            # We monitor stdout of all active workers to see who finishes
+            logging.info("Master: Starting scheduler event loop")
+            while active_workers and (pending_files or len(idle_workers) < len(active_workers) or worker_state):
+                # Wait for any worker to say "DONE"
+                readable_pipes = [w.stdout for w in active_workers if w.stdout]
+                if not readable_pipes:
+                    break
+
+                # Timeout of 10s to log status if stuck
+                ready, _, _ = select.select(readable_pipes, [], [], 10.0)
+
+                if not ready:
+                    # Timeout! Log potentially stuck workers
+                    logging.warning(f"Master: Watchdog - Waiting for {len(active_workers)} workers. Pending files: {len(pending_files)}")
+                    now = time.time()
+                    for w, state in worker_state.items():
+                        elapsed = now - state['start_time']
+                        if elapsed > 30.0:
+                            logging.warning(f"  STUCK? Worker {w.args} parsing {state['file']} for {elapsed:.1f}s")
+                    continue
+
+                for stdout in ready:
+                    # Find which worker this is
+                    # (Slow linear search but N is small, <64 typically)
+                    worker = next((w for w in active_workers if w.stdout == stdout), None)
+                    if not worker:
+                        continue
+
+                    # Read the "DONE" message (binary)
+                    line = worker.stdout.readline()
+                    if not line: # EOF means worker died
+                        logging.warning(f"Master: Worker {worker.args} disconnected (EOF).")
+                        active_workers.remove(worker)
+                        if worker in worker_state:
+                             del worker_state[worker]
+                        continue
+
+                    # Worker finished a file
+                    if worker in worker_state:
+                        # elapsed = time.time() - worker_state[worker]['start_time']
+                        # logging.debug(f"Worker {worker.args} finished {worker_state[worker]['file']} in {elapsed:.2f}s")
+                        del worker_state[worker]
+
+                    completed_files += 1
+
+                    # assign next or mark idle
+                    if pending_files:
+                        next_file = pending_files.pop(0)
+                        if not send_work(worker, next_file):
+                            active_workers.remove(worker)
+                    else:
+                        # No more work, remove from active set
+                        active_workers.remove(worker)
+                        # Close stdin to signal worker to exit gracefully
+                        try:
+                            worker.stdin.close()
+                        except:
+                            pass
+                        pass
+
+            # Work is done, shutdown all workers
+            for w in workers:
+                try:
+                    if w.stdin:
+                        w.stdin.close() # Sends EOF, worker loop breaks
+                except:
+                    pass
+                w.wait() # Wait for clean exit
+
+            logging.info("Indexing completed.")
             # Merge the results of indexing operations into the single symbol database
             self.symbol_db.copy_all_entries_from(symbol_db_list)
 
-            # Get rid of temporary symbol db's & indexer input list filenames
-            for symbol_db, indexer_input in zip(symbol_db_list, indexer_input_list):
-                os.remove(symbol_db)
-                os.remove(indexer_input)
+            # Get rid of temporary symbol db's
+            for symbol_db in symbol_db_list:
+                try:
+                    os.remove(symbol_db)
+                except OSError:
+                    pass
 
             # TODO how to count total CPU time, for all sub-processes?
             logging.info("Indexing {0} is completed.".format(self.root_directory))
@@ -291,21 +373,44 @@ class ClangIndexer():
             logging.error('Action cannot be run if symbol database does not exist yet!')
         return db_exists, None
 
-def index_file_list(root_directory, input_filename_list, compiler_args_filename, output_db_filename):
+def index_interactive(root_directory, compiler_args_filename, output_db_filename, worker_id):
     symbol_db = SymbolDatabase(output_db_filename)
     symbol_db.create_data_model()
     cxxd_config_parser = CxxdConfigParser(os.path.join(root_directory, '.cxxd_config.json'), root_directory)
     parser = ClangParser(compiler_args_filename, TranslationUnitCache(NoCache()), cxxd_config_parser.get_clang_library_file())
-    with open(input_filename_list, 'r') as input_list:
-        for filename in input_list.readlines():
-            index_single_file(parser, root_directory, filename.strip(), symbol_db)
+
+    worker_prefix = f"[Worker {worker_id}] " if worker_id else ""
+    logging.info(f"{worker_prefix}Interactive worker started.")
+    while True:
+        try:
+            line = sys.stdin.readline()
+            if not line:
+                break
+
+            # Simple protocol: just filename
+            filename = line.strip()
+            if not filename:
+                continue
+
+            logging.info(f"{worker_prefix}Indexing: {filename}")
+            index_single_file(parser, root_directory, filename, symbol_db)
+
+            # Signal completion to master
+            print("DONE", flush=True)
+
+        except Exception as e:
+            logging.error(f"{worker_prefix}Error in interactive loop: {e}")
+            # Even on error, signal done so master doesn't hang (maybe with error code?)
+            # For now, just DONE to keep going.
+            print("DONE", flush=True)
     symbol_db.close()
+    logging.info(f"{worker_prefix}Interactive worker finished.")
 
 def indexer_visitor(ast_node, ast_parent_node, args):
     def extract_cursor_context(filename, line):
         return linecache.getline(filename, line)
 
-    parser, symbol_db, root_directory = args
+    parser, symbol_db, root_directory, symbol_batch = args
     ast_node_location = ast_node.location
     ast_node_tunit_spelling = ast_node.translation_unit.spelling
     ast_node_referenced = ast_node.referenced
@@ -315,7 +420,7 @@ def indexer_visitor(ast_node, ast_parent_node, args):
         line = int(parser.get_ast_node_line(ast_node))
         column = int(parser.get_ast_node_column(ast_node))
         if id in ClangIndexer.supported_ast_node_ids:
-            symbol_db.insert_symbol_entry(
+            symbol_batch.append((
                 remove_root_dir_from_filename(root_directory, ast_node_tunit_spelling),
                 line,
                 column,
@@ -323,18 +428,21 @@ def indexer_visitor(ast_node, ast_parent_node, args):
                 extract_cursor_context(ast_node_tunit_spelling, line),
                 ast_node_referenced._kind_id if ast_node_referenced else ast_node._kind_id,
                 ast_node.is_definition()
-            )
+            ))
         return ChildVisitResult.RECURSE.value  # If we are positioned in TU of interest, then we'll traverse through all descendants
     return ChildVisitResult.CONTINUE.value  # Otherwise, we'll skip to the next sibling
 
 def index_single_file(parser, root_directory, filename, symbol_db):
-    logging.info("Indexing a file '{0}' ... ".format(filename))
+    logging.debug("Indexing a file '{0}' ... ".format(filename))
     tunit = parser.parse(filename, filename)
     if tunit:
-        parser.traverse(tunit.cursor, [parser, symbol_db, root_directory], indexer_visitor)
+        symbol_batch = []
+        parser.traverse(tunit.cursor, [parser, symbol_db, root_directory, symbol_batch], indexer_visitor)
+        if symbol_batch:
+            symbol_db.insert_symbol_entries_batch(symbol_batch)
         store_tunit_diagnostics(tunit.diagnostics, symbol_db, root_directory)
         symbol_db.flush()
-    logging.info("Indexing of {0} completed.".format(filename))
+    logging.debug("Indexing of {0} completed.".format(filename))
     return tunit is not None
 
 def store_tunit_diagnostics(diagnostics, symbol_db, root_directory):
@@ -377,11 +485,14 @@ def get_clang_index_path():
 def get_cpp_file_list(root_directory, blacklisted_directories, recognized_file_extensions):
     cpp_file_list = []
     for dirpath, dirs, files in os.walk(root_directory):
+        # Prune blacklisted directories from traversal
+        dirs[:] = [d for d in dirs if not CxxdConfigParser.is_file_blacklisted(blacklisted_directories, os.path.join(dirpath, d))]
         for filename in files:
             name, extension = os.path.splitext(filename)
             if extension in recognized_file_extensions:
-                if not CxxdConfigParser.is_file_blacklisted(blacklisted_directories, filename):
-                    cpp_file_list.append(os.path.join(dirpath, filename))
+                full_path = os.path.join(dirpath, filename)
+                if not CxxdConfigParser.is_file_blacklisted(blacklisted_directories, full_path):
+                    cpp_file_list.append(full_path)
     return cpp_file_list
 
 def create_indexer_input_list_file(directory, with_prefix, cpp_file_list_chunk):
@@ -394,11 +505,14 @@ def create_empty_symbol_db(directory, with_prefix):
     symbol_db_handle, symbol_db = tempfile.mkstemp(prefix=with_prefix, dir=directory)
     return symbol_db_handle, symbol_db
 
-def start_indexing_subprocess(root_directory, compiler_args_filename, indexer_input_list_filename, output_db_filename, log_filename):
-    cmd = "python3 " + get_clang_index_path() + \
-            " --project_root_directory='" + root_directory + \
-            "' --compiler_args_filename='" + compiler_args_filename + \
-            "' --input_list='" + indexer_input_list_filename + \
-            "' --output_db_filename='" + output_db_filename + \
-            "' " + "--log_file='" + log_filename + "'"
-    return subprocess.Popen(shlex.split(cmd))
+def start_indexing_subprocess(root_directory, compiler_args_filename, output_db_filename, log_filename, worker_id):
+    cmd_args = [
+        "python3", get_clang_index_path(),
+        "--project_root_directory", root_directory,
+        "--compiler_args_filename", compiler_args_filename,
+        "--output_db_filename", output_db_filename,
+        "--log_file", log_filename,
+        "--worker_id", str(worker_id)
+    ]
+    # Use unbuffered binary mode to avoid select() deadlock with TextIOWrapper buffers
+    return subprocess.Popen(cmd_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=0)

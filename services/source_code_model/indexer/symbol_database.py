@@ -206,6 +206,16 @@ class SymbolDatabase():
         except:
             logging.error('Unexpected exception {0}'.format(sys.exc_info()))
 
+    def insert_symbol_entries_batch(self, entries):
+        # entries is a list of tuples: (filename, line, column, unique_id, context, symbol_kind, is_definition)
+        try:
+            # Use INSERT OR IGNORE to handle duplicates without failing the entire batch
+            self.db_connection.cursor().executemany('INSERT OR IGNORE INTO symbol VALUES (?, ?, ?, ?, ?, ?, ?)', entries)
+        except sqlite3.ProgrammingError as e:
+            logging.error(f"Failed to batch insert symbols: {e}")
+        except:
+            logging.error('Unexpected exception {0}'.format(sys.exc_info()))
+
     def insert_diagnostics_entry(self, filename, line, column, description, severity):
         diagnostics_id = None
         try:
