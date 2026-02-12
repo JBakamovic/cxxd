@@ -414,14 +414,14 @@ class ClangParser():
             definition = cursor.get_definition()
             if definition:
                 return definition
-            
+
             if cursor.kind == clang.cindex.CursorKind.OVERLOADED_DECL_REF:
                 if ClangParser.__get_num_overloaded_decls(cursor) > 0:
                     return ClangParser.__get_overloaded_decl(cursor, 0)
-            
+
             if cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR:
                 return self.__try_resolve_dependent_member_ref(cursor)
-                    
+
         return None
 
     def __try_resolve_dependent_member_ref(self, cursor):
@@ -429,44 +429,44 @@ class ClangParser():
         Attempts to resolve a dependent member reference (e.g. ptr->method()) where 'ptr' is a 
         smart pointer to a dependent type (e.g. unique_ptr<T>).
         """
-        # 1. Identify the member name from tokens (cursor.spelling is often empty for dependent members)
+        # Identify the member name from tokens (cursor.spelling is often empty for dependent members).
         member_name = ""
         tokens = list(cursor.get_tokens())
         if tokens and tokens[-1].kind == clang.cindex.TokenKind.IDENTIFIER:
             member_name = tokens[-1].spelling
-        
+
         if not member_name:
             return None
 
-        # 2. Find the base expression (the object being accessed)
+        # Find the base expression (the object being accessed).
         children = list(cursor.get_children())
         if not children:
             return None
-        
+
         base_expr = children[0]
         base_type = base_expr.type
-        
-        # 3. Check if base is a smart pointer (shared_ptr, unique_ptr)
-        # We check the canonical type spelling or declaration name
-        # A robust way is checking the declaration name of the type
+
+        # Check if base is a smart pointer (shared_ptr, unique_ptr).
+        # We check the canonical type spelling or declaration name.
+        # A robust way is checking the declaration name of the type.
         base_decl = base_type.get_declaration()
         if not base_decl:
             return None
-            
+
         base_decl_name = base_decl.spelling
-        if "shared_ptr" in base_decl_name or "unique_ptr" in base_decl_name:
-             # 4. Extract the pointee type (first template argument)
+        if "shared_ptr" in base_decl_name or "unique_ptr" or "weak_ptr" in base_decl_name:
+             # Extract the pointee type (first template argument)
              if base_type.get_num_template_arguments() > 0:
                  pointee_type = base_type.get_template_argument_type(0)
                  pointee_decl = pointee_type.get_declaration()
-                 
+
                  if pointee_decl:
-                     # 5. Search for the member in the pointee declaration
-                     # We search in the class template or class declaration
+                     # Search for the member in the pointee declaration.
+                     # We search in the class template or class declaration.
                      for child in pointee_decl.get_children():
                          if child.spelling == member_name:
                              return child
-                             
+
         return None
 
     def dump_tokens(self, cursor):
