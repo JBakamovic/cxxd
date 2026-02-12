@@ -223,7 +223,7 @@ class ClangParser():
         # Check if we have this tunit already in the cache ...
         tunit, tunit_build_flags, tunit_timestamp = self.tunit_cache.fetch(original_filename)
         if tunit is None:
-            logging.info('TUnit NOT found in cache!')
+            logging.debug('TUnit NOT found in cache!')
             build_flags = self.compiler_args.get(original_filename)
             tunit = self.__do_parse(
                 contents_filename,
@@ -236,10 +236,10 @@ class ClangParser():
             else:
                 logging.error('Unable to parse TUnit!')
         else:
-            logging.info('TUnit found in cache!')
+            logging.debug('TUnit found in cache!')
             curr_timestamp = os.path.getmtime(contents_filename)
             if tunit_timestamp != curr_timestamp:      # We still have to make sure that cached tunit is not out-of-date.
-                logging.info('But it is too old ... reparsing')
+                logging.debug('But it is too old ... reparsing')
                 tunit = self.__do_parse(
                     contents_filename,
                     original_filename,
@@ -447,8 +447,11 @@ class ClangParser():
                 args = build_flags,
                 options = self.default_parsing_flags() if opts is None else opts
             )
-        except:
-            logging.error(sys.exc_info())
+        except Exception as e:
+            logging.error(f"Failed to parse '{contents_filename}' (original: '{original_filename}')")
+            logging.error(f"Compiler Args: {build_flags}")
+            logging.error(f"Options: {opts}")
+            logging.error(f"Exception: {e}")
 
     @staticmethod
     def __extract_dependent_type_kind(cursor):
