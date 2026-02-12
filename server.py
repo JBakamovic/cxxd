@@ -178,10 +178,3 @@ class Server():
 
     def is_started_up(self):
         return self.started_up
-
-def server_listener(server):
-    keep_listening = True
-    while keep_listening:
-        keep_listening = server.process_request()
-    logging.info("Server listener shut down ...")
-
