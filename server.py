@@ -91,6 +91,54 @@ class Server():
         self.service = {}
         self.started_up = True
         self.configuration = self.cxxd_config_parser.get_configuration_for_target(target)
+        
+        if not self.configuration:
+            # Auto-Configure: Check if we have a configure command + destination
+            configure_cmd = self.cxxd_config_parser.get_project_builder_configure_cmd(target)
+            build_dir = self.cxxd_config_parser.get_project_builder_build_dir(target)
+             
+            should_run = False
+             
+            if build_dir:
+                full_build_path = os.path.join(project_root_directory, build_dir)
+                 
+                if not os.path.exists(full_build_path):
+                    logging.info(f"Build directory '{full_build_path}' missing. Triggering auto-configure.")
+                    should_run = True
+                    try:
+                        os.makedirs(full_build_path)
+                    except OSError as e:
+                        logging.error(f"Failed to create build directory {full_build_path}: {e}")
+                else:
+                    # Check if compile_commands.json or compile_flags.txt exists inside
+                    cmd_json = os.path.join(full_build_path, 'compile_commands.json')
+                    flags_txt = os.path.join(full_build_path, 'compile_flags.txt')
+                    if not os.path.exists(cmd_json) and not os.path.exists(flags_txt):
+                        logging.info(f"Configuration file missing in '{full_build_path}'. Triggering auto-configure.")
+                        should_run = True
+                         
+                if should_run and configure_cmd:
+                    logging.info(f"Executing auto-configure command: '{configure_cmd}'")
+                     
+                    # Prepare command (cd if needed)
+                    final_cmd = configure_cmd
+                    if not self.cxxd_config_parser.is_bazel_build(target):
+                        full_build_path_for_cmd = os.path.join(project_root_directory, build_dir)
+                        final_cmd = f"cd {full_build_path_for_cmd} && {configure_cmd}"
+    
+                    import subprocess
+                    try:
+                        ret = subprocess.call(final_cmd, shell=True, executable='/bin/bash')
+                        if ret == 0:
+                            logging.info("Auto-configure successful! Retrying configuration loading...")
+                            self.configuration = self.cxxd_config_parser.get_configuration_for_target(target)
+                        else:
+                            logging.error(f"Auto-configure failed with return code {ret}.")
+                    except Exception as e:
+                        logging.error(f"Auto-configure execution exception: {e}")
+                elif should_run and not configure_cmd:
+                    logging.warning(f"Auto-configure needed but no 'configure' command defined for target '{target}'.")
+
         if self.configuration:
             self.service = {
                 ServiceId.SOURCE_CODE_MODEL : self.ServiceHandler(SourceCodeModel(project_root_directory, self.cxxd_config_parser, target, source_code_model_plugin)),

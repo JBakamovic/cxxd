@@ -132,10 +132,22 @@ class CxxdConfigParser():
         return self.get_common_cpp_file_extensions() + self.get_extra_file_extensions()
 
     def get_project_builder_build_cmd(self, target):
-        return self._extract_project_builder_build_cmd(self.project_builder_targets, target)
+        return self._extract_project_builder_task_cmd(self.project_builder_targets, target, 'cmd')
+
+    def get_project_builder_configure_cmd(self, target):
+        return self._extract_project_builder_task_cmd(self.project_builder_targets, target, 'configure')
+
+    def is_bazel_build(self, target):
+        cmd = self.get_project_builder_build_cmd(target)
+        if cmd:
+            return "bazel" in cmd
+        return False
 
     def get_project_builder_build_dir(self, target):
-        return self._extract_project_builder_build_dir(self.configuration_selected, target)
+        if self.configuration_selected and 'target' in self.configuration_selected:
+             if target in self.configuration_selected['target']:
+                 return self.configuration_selected['target'][target]
+        return None
 
     def get_project_builder_targets(self):
         return self.project_builder_targets
@@ -341,12 +353,8 @@ class CxxdConfigParser():
                     targets[target] = value
         return targets
 
-    def _extract_project_builder_build_cmd(self, project_builder_targets, target):
+    def _extract_project_builder_task_cmd(self, project_builder_targets, target, key):
         if target in project_builder_targets:
-            return project_builder_targets[target]['cmd']
-        return None
-
-    def _extract_project_builder_build_dir(self, configuration_selected, target):
-        if target in configuration_selected['target']:
-            return configuration_selected['target'][target]
+            if key in project_builder_targets[target]:
+                return project_builder_targets[target][key]
         return None

@@ -59,8 +59,13 @@ class ProjectBuilder(cxxd.service.Service):
         build_dir_path = self._ensure_build_dir(build_dir)
         if not build_dir_path:
              return False, f"Failed to create build directory for {target_name}"
-             
-        full_cmd = f"cd {build_dir_path} && {build_cmd_str}"
+
+        # Bazel does the builds from the repo, cmake from the build directories themselves
+        if "bazel" in build_cmd_str:
+             full_cmd = f"cd {self.project_root_directory} && {build_cmd_str}"
+        else:
+             full_cmd = f"cd {build_dir_path} && {build_cmd_str}"
+
         return True, [full_cmd]
 
     def startup_callback(self, args):
